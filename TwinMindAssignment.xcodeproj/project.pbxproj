@@ -1,0 +1,588 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		F2A47B982E1CED8900C752FB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F2A47B7D2E1CED8800C752FB /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F2A47B842E1CED8800C752FB;
+			remoteInfo = TwinMindAssignment;
+		};
+		F2A47BA22E1CED8900C752FB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F2A47B7D2E1CED8800C752FB /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F2A47B842E1CED8800C752FB;
+			remoteInfo = TwinMindAssignment;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		F2A47B852E1CED8800C752FB /* TwinMindAssignment.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TwinMindAssignment.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F2A47B972E1CED8900C752FB /* TwinMindAssignmentTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TwinMindAssignmentTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F2A47BA12E1CED8900C752FB /* TwinMindAssignmentUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TwinMindAssignmentUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		F2CE54B92E1D13C9004FB151 /* Exceptions for "TwinMindAssignment" folder in "TwinMindAssignment" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F2A47B842E1CED8800C752FB /* TwinMindAssignment */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		F2A47B872E1CED8800C752FB /* TwinMindAssignment */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F2CE54B92E1D13C9004FB151 /* Exceptions for "TwinMindAssignment" folder in "TwinMindAssignment" target */,
+			);
+			path = TwinMindAssignment;
+			sourceTree = "<group>";
+		};
+		F2A47B9A2E1CED8900C752FB /* TwinMindAssignmentTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TwinMindAssignmentTests;
+			sourceTree = "<group>";
+		};
+		F2A47BA42E1CED8900C752FB /* TwinMindAssignmentUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TwinMindAssignmentUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F2A47B822E1CED8800C752FB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F2A47B942E1CED8900C752FB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F2A47B9E2E1CED8900C752FB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		F2A47B7C2E1CED8800C752FB = {
+			isa = PBXGroup;
+			children = (
+				F2A47B872E1CED8800C752FB /* TwinMindAssignment */,
+				F2A47B9A2E1CED8900C752FB /* TwinMindAssignmentTests */,
+				F2A47BA42E1CED8900C752FB /* TwinMindAssignmentUITests */,
+				F2A47B862E1CED8800C752FB /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		F2A47B862E1CED8800C752FB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F2A47B852E1CED8800C752FB /* TwinMindAssignment.app */,
+				F2A47B972E1CED8900C752FB /* TwinMindAssignmentTests.xctest */,
+				F2A47BA12E1CED8900C752FB /* TwinMindAssignmentUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		F2A47B842E1CED8800C752FB /* TwinMindAssignment */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F2A47BAB2E1CED8900C752FB /* Build configuration list for PBXNativeTarget "TwinMindAssignment" */;
+			buildPhases = (
+				F2A47B812E1CED8800C752FB /* Sources */,
+				F2A47B822E1CED8800C752FB /* Frameworks */,
+				F2A47B832E1CED8800C752FB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F2A47B872E1CED8800C752FB /* TwinMindAssignment */,
+			);
+			name = TwinMindAssignment;
+			packageProductDependencies = (
+			);
+			productName = TwinMindAssignment;
+			productReference = F2A47B852E1CED8800C752FB /* TwinMindAssignment.app */;
+			productType = "com.apple.product-type.application";
+		};
+		F2A47B962E1CED8900C752FB /* TwinMindAssignmentTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F2A47BAE2E1CED8900C752FB /* Build configuration list for PBXNativeTarget "TwinMindAssignmentTests" */;
+			buildPhases = (
+				F2A47B932E1CED8900C752FB /* Sources */,
+				F2A47B942E1CED8900C752FB /* Frameworks */,
+				F2A47B952E1CED8900C752FB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F2A47B992E1CED8900C752FB /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				F2A47B9A2E1CED8900C752FB /* TwinMindAssignmentTests */,
+			);
+			name = TwinMindAssignmentTests;
+			packageProductDependencies = (
+			);
+			productName = TwinMindAssignmentTests;
+			productReference = F2A47B972E1CED8900C752FB /* TwinMindAssignmentTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		F2A47BA02E1CED8900C752FB /* TwinMindAssignmentUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F2A47BB12E1CED8900C752FB /* Build configuration list for PBXNativeTarget "TwinMindAssignmentUITests" */;
+			buildPhases = (
+				F2A47B9D2E1CED8900C752FB /* Sources */,
+				F2A47B9E2E1CED8900C752FB /* Frameworks */,
+				F2A47B9F2E1CED8900C752FB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F2A47BA32E1CED8900C752FB /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				F2A47BA42E1CED8900C752FB /* TwinMindAssignmentUITests */,
+			);
+			name = TwinMindAssignmentUITests;
+			packageProductDependencies = (
+			);
+			productName = TwinMindAssignmentUITests;
+			productReference = F2A47BA12E1CED8900C752FB /* TwinMindAssignmentUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F2A47B7D2E1CED8800C752FB /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1610;
+				LastUpgradeCheck = 1610;
+				TargetAttributes = {
+					F2A47B842E1CED8800C752FB = {
+						CreatedOnToolsVersion = 16.1;
+					};
+					F2A47B962E1CED8900C752FB = {
+						CreatedOnToolsVersion = 16.1;
+						TestTargetID = F2A47B842E1CED8800C752FB;
+					};
+					F2A47BA02E1CED8900C752FB = {
+						CreatedOnToolsVersion = 16.1;
+						TestTargetID = F2A47B842E1CED8800C752FB;
+					};
+				};
+			};
+			buildConfigurationList = F2A47B802E1CED8800C752FB /* Build configuration list for PBXProject "TwinMindAssignment" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = F2A47B7C2E1CED8800C752FB;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = F2A47B862E1CED8800C752FB /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F2A47B842E1CED8800C752FB /* TwinMindAssignment */,
+				F2A47B962E1CED8900C752FB /* TwinMindAssignmentTests */,
+				F2A47BA02E1CED8900C752FB /* TwinMindAssignmentUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F2A47B832E1CED8800C752FB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F2A47B952E1CED8900C752FB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F2A47B9F2E1CED8900C752FB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		F2A47B812E1CED8800C752FB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F2A47B932E1CED8900C752FB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F2A47B9D2E1CED8900C752FB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		F2A47B992E1CED8900C752FB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F2A47B842E1CED8800C752FB /* TwinMindAssignment */;
+			targetProxy = F2A47B982E1CED8900C752FB /* PBXContainerItemProxy */;
+		};
+		F2A47BA32E1CED8900C752FB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F2A47B842E1CED8800C752FB /* TwinMindAssignment */;
+			targetProxy = F2A47BA22E1CED8900C752FB /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		F2A47BA92E1CED8900C752FB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		F2A47BAA2E1CED8900C752FB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		F2A47BAC2E1CED8900C752FB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"TwinMindAssignment/Preview Content\"";
+				DEVELOPMENT_TEAM = 8FJPU4SM32;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TwinMindAssignment/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app requires microphone access to record audio for transcription. Your recordings are processed securely and stored locally on your device";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "This app uses speech recognition to provide local transcription when network transcription is unavailable. This enhances your privacy by keeping audio processing on-device.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiredDeviceCapabilities = microphone;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.noor.TwinMindAssignment;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F2A47BAD2E1CED8900C752FB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"TwinMindAssignment/Preview Content\"";
+				DEVELOPMENT_TEAM = 8FJPU4SM32;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TwinMindAssignment/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app requires microphone access to record audio for transcription. Your recordings are processed securely and stored locally on your device";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "This app uses speech recognition to provide local transcription when network transcription is unavailable. This enhances your privacy by keeping audio processing on-device.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiredDeviceCapabilities = microphone;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.noor.TwinMindAssignment;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		F2A47BAF2E1CED8900C752FB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8FJPU4SM32;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.noor.TwinMindAssignmentTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TwinMindAssignment.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TwinMindAssignment";
+			};
+			name = Debug;
+		};
+		F2A47BB02E1CED8900C752FB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8FJPU4SM32;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.noor.TwinMindAssignmentTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TwinMindAssignment.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TwinMindAssignment";
+			};
+			name = Release;
+		};
+		F2A47BB22E1CED8900C752FB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8FJPU4SM32;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.noor.TwinMindAssignmentUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = TwinMindAssignment;
+			};
+			name = Debug;
+		};
+		F2A47BB32E1CED8900C752FB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8FJPU4SM32;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.noor.TwinMindAssignmentUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = TwinMindAssignment;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		F2A47B802E1CED8800C752FB /* Build configuration list for PBXProject "TwinMindAssignment" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F2A47BA92E1CED8900C752FB /* Debug */,
+				F2A47BAA2E1CED8900C752FB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F2A47BAB2E1CED8900C752FB /* Build configuration list for PBXNativeTarget "TwinMindAssignment" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F2A47BAC2E1CED8900C752FB /* Debug */,
+				F2A47BAD2E1CED8900C752FB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F2A47BAE2E1CED8900C752FB /* Build configuration list for PBXNativeTarget "TwinMindAssignmentTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F2A47BAF2E1CED8900C752FB /* Debug */,
+				F2A47BB02E1CED8900C752FB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F2A47BB12E1CED8900C752FB /* Build configuration list for PBXNativeTarget "TwinMindAssignmentUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F2A47BB22E1CED8900C752FB /* Debug */,
+				F2A47BB32E1CED8900C752FB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = F2A47B7D2E1CED8800C752FB /* Project object */;
+}

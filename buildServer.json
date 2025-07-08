@@ -1,0 +1,19 @@
+{
+	"name": "xcode build server",
+	"version": "0.2",
+	"bspVersion": "2.0",
+	"languages": [
+		"c",
+		"cpp",
+		"objective-c",
+		"objective-cpp",
+		"swift"
+	],
+	"argv": [
+		"/opt/homebrew/bin/xcode-build-server"
+	],
+	"workspace": "/Users/noorbhatia/Desktop/noobzik/TwinMindAssignment/TwinMindAssignment.xcodeproj/project.xcworkspace",
+	"build_root": "/Users/noorbhatia/Library/Developer/Xcode/DerivedData/TwinMindAssignment-bbhenapubadrvwfbfnhjqmkcexcy",
+	"scheme": "TwinMindAssignment",
+	"kind": "xcode"
+}

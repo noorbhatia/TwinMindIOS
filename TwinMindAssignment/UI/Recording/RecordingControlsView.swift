@@ -1,0 +1,419 @@
+import SwiftUI
+
+/// Recording controls interface with visual feedback and audio monitoring
+struct RecordingControlsView: View {
+    @ObservedObject var audioManager: AudioManager
+    @State private var showingSettingsSheet = false
+    @State private var showingPermissionAlert = false
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            // Recording Status and Info
+            recordingStatusSection
+            
+            // Audio Level Meter
+            if audioManager.isRecording {
+                audioLevelMeter
+            }
+            
+            // Main Recording Controls
+            recordingControls
+            
+            // Secondary Controls
+            secondaryControls
+        }
+        .padding(.horizontal, 20)
+        .alert("Microphone Permission Required", isPresented: $showingPermissionAlert) {
+            Button("Settings") {
+                openAppSettings()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This app needs microphone access to record audio. Please enable it in Settings.")
+        }
+        .alert("Recording Error", isPresented: $audioManager.showingErrorAlert) {
+            Button("OK") {
+                audioManager.clearError()
+            }
+            if audioManager.lastError == .permissionDenied {
+                Button("Settings") {
+                    openAppSettings()
+                }
+            }
+        } message: {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(audioManager.getErrorMessage())
+                Text(audioManager.getSuggestedAction())
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .sheet(isPresented: $showingSettingsSheet) {
+            RecordingSettingsView(audioManager: audioManager)
+        }
+    }
+    
+    // MARK: - Recording Status Section
+    
+    private var recordingStatusSection: some View {
+        VStack(spacing: 12) {
+            // Recording State Indicator
+            HStack {
+                recordingStateIndicator
+                Spacer()
+                if audioManager.isBackgroundRecordingEnabled {
+                    backgroundRecordingIndicator
+                }
+            }
+            
+            // Duration and Route Info
+            VStack(spacing: 4) {
+                Text(audioManager.formatDuration(audioManager.currentRecordingDuration))
+                    .font(.largeTitle.monospacedDigit())
+                    .fontWeight(.semibold)
+                
+                Text("Audio Route: \(audioManager.currentAudioRoute)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+    
+    private var recordingStateIndicator: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(recordingStateColor)
+                .frame(width: 12, height: 12)
+                .animation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true), 
+                          value: audioManager.isRecording && !audioManager.isPaused)
+            
+            Text(recordingStateText)
+                .font(.headline)
+                .fontWeight(.medium)
+        }
+    }
+    
+    private var backgroundRecordingIndicator: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "arrow.triangle.2.circlepath")
+                .foregroundColor(.blue)
+                .font(.caption)
+            Text("Background")
+                .font(.caption)
+                .foregroundColor(.blue)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Color.blue.opacity(0.1))
+        .cornerRadius(8)
+    }
+    
+    // MARK: - Audio Level Meter
+    
+    private var audioLevelMeter: some View {
+        VStack(spacing: 8) {
+            Text("Audio Level")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    // Background
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.gray.opacity(0.3))
+                    
+                    // Level indicator
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(audioLevelColor)
+                        .frame(width: geometry.size.width * CGFloat(audioManager.audioLevel))
+                        .animation(.easeOut(duration: 0.1), value: audioManager.audioLevel)
+                }
+            }
+            .frame(height: 8)
+        }
+        .padding(.horizontal, 4)
+    }
+    
+    // MARK: - Recording Controls
+    
+    private var recordingControls: some View {
+        HStack(spacing: 32) {
+            // Cancel/Stop Button
+            if audioManager.isRecording {
+                Button(action: cancelRecording) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 44))
+                        .foregroundColor(.red)
+                }
+                .disabled(!audioManager.isRecording)
+                .buttonStyle(ScaleButtonStyle())
+            }
+            
+            // Main Record/Pause/Resume Button
+            Button(action: toggleRecording) {
+                Image(systemName: mainButtonIcon)
+                    .font(.system(size: 60))
+                    .foregroundColor(mainButtonColor)
+            }
+            .disabled(!audioManager.isPermissionGranted && !audioManager.isRecording)
+            .buttonStyle(ScaleButtonStyle())
+            
+            // Stop Button
+            if audioManager.isRecording {
+                Button(action: stopRecording) {
+                    Image(systemName: "stop.circle.fill")
+                        .font(.system(size: 44))
+                        .foregroundColor(.gray)
+                }
+                .disabled(!audioManager.isRecording)
+                .buttonStyle(ScaleButtonStyle())
+            }
+        }
+        .padding(.vertical, 20)
+    }
+    
+    // MARK: - Secondary Controls
+    
+    private var secondaryControls: some View {
+        HStack(spacing: 20) {
+            // Settings Button
+            Button(action: { showingSettingsSheet = true }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "gearshape")
+                    Text("Settings")
+                }
+                .font(.callout)
+                .foregroundColor(.blue)
+            }
+            
+            Spacer()
+            
+            // Permission Status
+            if !audioManager.isPermissionGranted {
+                Button(action: requestPermission) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "mic.slash")
+                        Text("Enable Mic")
+                    }
+                    .font(.callout)
+                    .foregroundColor(.red)
+                }
+            }
+            
+            // Recording Quality Indicator
+            Text(audioManager.getConfigurationDisplayName(audioManager.audioConfiguration))
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(6)
+        }
+    }
+    
+    // MARK: - Computed Properties
+    
+    private var recordingStateText: String {
+        switch audioManager.recordingState {
+        case .stopped:
+            return "Ready to Record"
+        case .recording:
+            return audioManager.isPaused ? "Paused" : "Recording"
+        case .paused:
+            return "Paused"
+        case .error:
+            return "Error"
+        }
+    }
+    
+    private var recordingStateColor: Color {
+        switch audioManager.recordingState {
+        case .stopped:
+            return .gray
+        case .recording:
+            return audioManager.isPaused ? .orange : .red
+        case .paused:
+            return .orange
+        case .error:
+            return .red
+        }
+    }
+    
+    private var mainButtonIcon: String {
+        if !audioManager.isRecording {
+            return "mic.circle.fill"
+        } else if audioManager.isPaused {
+            return "play.circle.fill"
+        } else {
+            return "pause.circle.fill"
+        }
+    }
+    
+    private var mainButtonColor: Color {
+        if !audioManager.isRecording {
+            return audioManager.isPermissionGranted ? .red : .gray
+        } else if audioManager.isPaused {
+            return .green
+        } else {
+            return .orange
+        }
+    }
+    
+    private var audioLevelColor: Color {
+        let level = audioManager.audioLevel
+        if level < 0.3 {
+            return .green
+        } else if level < 0.7 {
+            return .yellow
+        } else {
+            return .red
+        }
+    }
+    
+    // MARK: - Actions
+    
+    private func toggleRecording() {
+        Task {
+            if !audioManager.isRecording {
+                await audioManager.startRecording()
+            } else if audioManager.isPaused {
+                audioManager.resumeRecording()
+            } else {
+                audioManager.pauseRecording()
+            }
+        }
+    }
+    
+    private func stopRecording() {
+        let recordingURL = audioManager.stopRecording()
+        // Handle the recorded file URL (save to SwiftData, etc.)
+        if let url = recordingURL {
+            print("Recording saved to: \(url)")
+        }
+    }
+    
+    private func cancelRecording() {
+        audioManager.cancelRecording()
+    }
+    
+    private func requestPermission() {
+        Task {
+            let granted = await audioManager.requestMicrophonePermission()
+            if !granted {
+                showingPermissionAlert = true
+            }
+        }
+    }
+    
+    private func openAppSettings() {
+        if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(settingsURL)
+        }
+    }
+}
+
+// MARK: - Custom Button Style
+
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+    }
+}
+
+// MARK: - Recording Settings View
+
+struct RecordingSettingsView: View {
+    @ObservedObject var audioManager: AudioManager
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedQuality: AudioRecorderEngine.AudioConfiguration
+    
+    init(audioManager: AudioManager) {
+        self.audioManager = audioManager
+        self._selectedQuality = State(initialValue: audioManager.audioConfiguration)
+    }
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section("Audio Quality") {
+                    ForEach(AudioManager.audioQualityPresets, id: \.sampleRate) { config in
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(audioManager.getConfigurationDisplayName(config))
+                                    .fontWeight(.medium)
+                                Text("\(config.channels) channel, \(config.bitDepth)-bit")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            if config.sampleRate == selectedQuality.sampleRate {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            selectedQuality = config
+                        }
+                    }
+                }
+                
+                Section("Background Recording") {
+                    if audioManager.isBackgroundRecordingSupported() {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            Text("Background recording is supported")
+                        }
+                    } else {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle")
+                                    .foregroundColor(.orange)
+                                Text("Background recording not configured")
+                            }
+                            Text("Add 'audio' to UIBackgroundModes in Info.plist")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                
+                Section("App Information") {
+                    HStack {
+                        Text("Version")
+                        Spacer()
+                        Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown")
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    HStack {
+                        Text("Build")
+                        Spacer()
+                        Text(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown")
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .navigationTitle("Recording Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        audioManager.setAudioConfiguration(selectedQuality)
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Preview
+
+#Preview {
+    RecordingControlsView(audioManager: AudioManager())
+        .padding()
+} 
