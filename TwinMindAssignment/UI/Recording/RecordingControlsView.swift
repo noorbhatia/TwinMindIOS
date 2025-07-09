@@ -1,19 +1,30 @@
 import SwiftUI
+import SwiftData
+import DSWaveformImage
+import DSWaveformImageViews
 
 /// Recording controls interface with visual feedback and audio monitoring
 struct RecordingControlsView: View {
     @ObservedObject var audioManager: AudioManager
+    @Environment(\.modelContext) private var modelContext
     @State private var showingSettingsSheet = false
     @State private var showingPermissionAlert = false
-    
+    // Waveform configuration
+    @State private var liveConfiguration: Waveform.Configuration = Waveform.Configuration(
+        style: .striped(.init(color: .systemRed, width: 3, spacing: 3)),
+        scale: 1.0,
+        verticalScalingFactor: 0.9
+    )
+
     var body: some View {
         VStack(spacing: 24) {
             // Recording Status and Info
-            recordingStatusSection
+//            recordingStatusSection
             
-            // Audio Level Meter
+            // Live Waveform Visualization
             if audioManager.isRecording {
-                audioLevelMeter
+                WaveformView(samples: audioManager.audioSamples)
+                    .frame(width: 150, height: 150)
             }
             
             // Main Recording Controls
@@ -50,6 +61,12 @@ struct RecordingControlsView: View {
         }
         .sheet(isPresented: $showingSettingsSheet) {
             RecordingSettingsView(audioManager: audioManager)
+        }
+        .onReceive(audioManager.$isRecording) { isRecording in
+            if !isRecording {
+                // Samples are automatically cleared by AudioRecorderEngine
+                print("Recording stopped - samples will be cleared by engine")
+            }
         }
     }
     
@@ -107,6 +124,8 @@ struct RecordingControlsView: View {
         .background(Color.blue.opacity(0.1))
         .cornerRadius(8)
     }
+    
+ 
     
     // MARK: - Audio Level Meter
     
@@ -286,9 +305,50 @@ struct RecordingControlsView: View {
     
     private func stopRecording() {
         let recordingURL = audioManager.stopRecording()
-        // Handle the recorded file URL (save to SwiftData, etc.)
-        if let url = recordingURL {
-            print("Recording saved to: \(url)")
+        let metadata = audioManager.getRecordingMetadata()
+        
+        // Create and save RecordingSession to SwiftData
+        if let url = recordingURL, let startTime = metadata.startTime {
+            let config = metadata.configuration
+            let endTime = Date()
+            
+            // Get file size
+            let fileSize: Int64
+            if let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
+               let size = attributes[.size] as? Int64 {
+                fileSize = size
+            } else {
+                fileSize = 0
+            }
+            
+            // Create RecordingSession
+            let session = RecordingSession(
+                startTime: startTime,
+                sampleRate: config.sampleRate,
+                bitDepth: Int(config.bitDepth),
+                channels: Int(config.channels),
+                audioFormat: config.fileFormat.fileExtension.uppercased(),
+                audioQuality: getQualityName(for: config)
+            )
+            
+            // Complete the session with file information
+            session.complete(
+                endTime: endTime,
+                fileURL: url,
+                fileSize: fileSize,
+                wasInterrupted: false, // Could be enhanced to track interruptions
+                backgroundRecordingUsed: audioManager.isBackgroundRecordingEnabled
+            )
+            
+            // Save to SwiftData
+            modelContext.insert(session)
+            
+            do {
+                try modelContext.save()
+                print("Recording session saved: \(session.title)")
+            } catch {
+                print("Failed to save recording session: \(error)")
+            }
         }
     }
     
@@ -310,6 +370,21 @@ struct RecordingControlsView: View {
             UIApplication.shared.open(settingsURL)
         }
     }
+    
+    private func getQualityName(for config: AudioConfiguration) -> String {
+        switch config.sampleRate {
+        case 44100.0:
+            return "High"
+        case 22050.0:
+            return "Medium"
+        case 16000.0:
+            return "Low"
+        default:
+            return "Custom"
+        }
+    }
+    
+
 }
 
 // MARK: - Custom Button Style
@@ -327,7 +402,7 @@ struct ScaleButtonStyle: ButtonStyle {
 struct RecordingSettingsView: View {
     @ObservedObject var audioManager: AudioManager
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedQuality: AudioRecorderEngine.AudioConfiguration
+    @State private var selectedQuality: AudioConfiguration
     
     init(audioManager: AudioManager) {
         self.audioManager = audioManager

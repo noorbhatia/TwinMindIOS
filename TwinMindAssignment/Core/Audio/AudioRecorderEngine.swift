@@ -1,117 +1,135 @@
 import Foundation
 import AVFoundation
 import Combine
+import Accelerate
+
+
+enum AudioRecordingError: LocalizedError , Equatable{
+    case audioSessionNotConfigured
+    case audioEngineFailure(String)
+    case fileCreationFailure
+    case insufficientStorage
+    case permissionDenied
+    case interruptionFailure
+    
+    var errorDescription: String? {
+        switch self {
+        case .audioSessionNotConfigured:
+            return "Audio session is not properly configured"
+        case .audioEngineFailure(let message):
+            return "Audio engine error: \(message)"
+        case .fileCreationFailure:
+            return "Failed to create audio file"
+        case .insufficientStorage:
+            return "Insufficient storage space"
+        case .permissionDenied:
+            return "Microphone permission denied"
+        case .interruptionFailure:
+            return "Failed to handle audio interruption"
+        }
+    }
+}
+
+enum AudioFileFormat {
+    case wav
+    case m4a
+    case caf
+    
+    var fileExtension: String {
+        switch self {
+        case .wav: return "wav"
+        case .m4a: return "m4a"
+        case .caf: return "caf"
+        }
+    }
+    
+    var audioFileTypeID: AudioFileTypeID {
+        switch self {
+        case .wav: return kAudioFileWAVEType
+        case .m4a: return kAudioFileM4AType
+        case .caf: return kAudioFileCAFType
+        }
+    }
+}
+
+// MARK: - Types
+enum RecordingState:Equatable {
+    case stopped
+    case recording
+    case paused
+    case error(AudioRecordingError)
+    
+    static func == (lhs: RecordingState, rhs: RecordingState) -> Bool {
+        switch (lhs, rhs) {
+        case
+            (.recording, .recording),
+            (.paused, .paused),
+            (.stopped, .stopped):
+            return true
+        case (.error(let lhsError), .error(let rhsError)):
+            return lhsError == rhsError
+        default:
+            return false
+        }
+    }
+}
+
+
+// MARK: - Audio Configuration
+struct AudioConfiguration {
+    let sampleRate: Double
+    let bitDepth: UInt32
+    let channels: UInt32
+    let fileFormat: AudioFileFormat
+    
+    static let high = AudioConfiguration(
+        sampleRate: 44100.0,
+        bitDepth: 16,
+        channels: 1,
+        fileFormat: .wav
+    )
+    
+    static let medium = AudioConfiguration(
+        sampleRate: 22050.0,
+        bitDepth: 16,
+        channels: 1,
+        fileFormat: .wav
+    )
+    
+    static let low = AudioConfiguration(
+        sampleRate: 16000.0,
+        bitDepth: 16,
+        channels: 1,
+        fileFormat: .wav
+    )
+}
+// MARK: - FFT Configuration Constants
+private enum FFTConstants {
+    /// Amount of frequency bins to keep after performing the FFT
+    static let sampleAmount: Int = 200
+    /// Reduce the number of plotted points for visualization
+    static let downsampleFactor = 8
+    /// Handle high spikes distortion in the waveform
+    static let magnitudeLimit: Float = 100
+    /// Buffer size for FFT processing
+    static let bufferSize = 8192
+}
 
 /// Core audio recording engine using AVAudioEngine for high-quality recording
 @MainActor
 final class AudioRecorderEngine: ObservableObject {
+    
     
     // MARK: - Published Properties
     @Published var isRecording = false
     @Published var isPaused = false
     @Published var currentRecordingDuration: TimeInterval = 0
     @Published var audioLevel: Float = 0.0
+    @Published var audioSamples: [Float] = []
+    
+    @Published var fftMagnitudes: [Float] = Array(repeating: 0, count: FFTConstants.sampleAmount)
     @Published var recordingState: RecordingState = .stopped
-    
-    // MARK: - Types
-    enum RecordingState:Equatable {
-        case stopped
-        case recording
-        case paused
-        case error(AudioRecordingError)
         
-        static func == (lhs: RecordingState, rhs: RecordingState) -> Bool {
-               switch (lhs, rhs) {
-               case
-                    (.recording, .recording),
-                    (.paused, .paused),
-                   (.stopped, .stopped):
-                   return true
-               case (.error(let lhsError), .error(let rhsError)):
-                   return lhsError == rhsError
-               default:
-                   return false
-               }
-           }
-    }
-    
-    enum AudioRecordingError: LocalizedError , Equatable{
-        case audioSessionNotConfigured
-        case audioEngineFailure(String)
-        case fileCreationFailure
-        case insufficientStorage
-        case permissionDenied
-        case interruptionFailure
-        
-        var errorDescription: String? {
-            switch self {
-            case .audioSessionNotConfigured:
-                return "Audio session is not properly configured"
-            case .audioEngineFailure(let message):
-                return "Audio engine error: \(message)"
-            case .fileCreationFailure:
-                return "Failed to create audio file"
-            case .insufficientStorage:
-                return "Insufficient storage space"
-            case .permissionDenied:
-                return "Microphone permission denied"
-            case .interruptionFailure:
-                return "Failed to handle audio interruption"
-            }
-        }
-    }
-    
-    // MARK: - Audio Configuration
-    struct AudioConfiguration {
-        let sampleRate: Double
-        let bitDepth: UInt32
-        let channels: UInt32
-        let fileFormat: AudioFileFormat
-        
-        static let high = AudioConfiguration(
-            sampleRate: 44100.0,
-            bitDepth: 16,
-            channels: 1,
-            fileFormat: .wav
-        )
-        
-        static let medium = AudioConfiguration(
-            sampleRate: 22050.0,
-            bitDepth: 16,
-            channels: 1,
-            fileFormat: .wav
-        )
-        
-        static let low = AudioConfiguration(
-            sampleRate: 16000.0,
-            bitDepth: 16,
-            channels: 1,
-            fileFormat: .wav
-        )
-    }
-    
-    enum AudioFileFormat {
-        case wav
-        case m4a
-        case caf
-        
-        var fileExtension: String {
-            switch self {
-            case .wav: return "wav"
-            case .m4a: return "m4a"
-            case .caf: return "caf"
-            }
-        }
-        
-        var audioFileTypeID: AudioFileTypeID {
-            switch self {
-            case .wav: return kAudioFileWAVEType
-            case .m4a: return kAudioFileM4AType
-            case .caf: return kAudioFileCAFType
-            }
-        }
-    }
-    
     // MARK: - Private Properties
     private let audioSession: AudioSessionManager
     private let audioEngine = AVAudioEngine()
@@ -131,18 +149,38 @@ final class AudioRecorderEngine: ObservableObject {
     // Cancellables for Combine
     private var cancellables = Set<AnyCancellable>()
     
+    // MARK: - FFT Setup Properties
+    private var fftSetup: FFTSetup?
+    private let log2n = vDSP_Length(log2(Float(FFTConstants.bufferSize)))
+    private var realParts = [Float](repeating: 0, count: FFTConstants.bufferSize)
+    private var imaginaryParts = [Float](repeating: 0, count: FFTConstants.bufferSize)
+    private var magnitudes = [Float](repeating: 0, count: FFTConstants.bufferSize / 2)
+    
     // MARK: - Initialization
     init(audioSession: AudioSessionManager) {
         self.audioSession = audioSession
+        setupFFT()
         setupAudioEngineObservers()
         setupNotificationObservers()
     }
     
     deinit {
-//        cleanup()
+        // Destroy FFT setup
+        if let setup = fftSetup {
+            vDSP_destroy_fftsetup(setup)
+        }
     }
     
     // MARK: - Public Methods
+    
+    /// Sets up the FFT for frequency analysis
+    private func setupFFT() {
+        fftSetup = vDSP_create_fftsetup(log2n, FFTRadix(kFFTRadix2))
+        guard fftSetup != nil else {
+            print("Failed to create FFT setup")
+            return
+        }
+    }
     
     /// Configures audio recording settings
     func configureAudio(with configuration: AudioConfiguration) {
@@ -150,7 +188,7 @@ final class AudioRecorderEngine: ObservableObject {
     }
     
     /// Starts audio recording
-    func startRecording() async throws {
+    func startRecording()  throws {
         // Check permissions
         guard audioSession.isRecordPermissionGranted else {
             recordingState = .error(.permissionDenied)
@@ -268,21 +306,9 @@ final class AudioRecorderEngine: ObservableObject {
     // MARK: - Private Methods
     
     private func setupAudioEngine() throws {
-        let inputNode = audioEngine.inputNode
-        let inputFormat = inputNode.outputFormat(forBus: 0)
-        
-        // Create recording format based on configuration
-        guard let recordingFormat = AVAudioFormat(
-            commonFormat: .pcmFormatInt16,
-            sampleRate: audioConfiguration.sampleRate,
-            channels: audioConfiguration.channels,
-            interleaved: false
-        ) else {
-            throw AudioRecordingError.audioEngineFailure("Failed to create recording format")
-        }
-        
+        let fmt = audioEngine.inputNode.inputFormat(forBus: 0)
         // Install tap on input node
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: inputFormat) { [weak self] buffer, _ in
+        audioEngine.inputNode.installTap(onBus: 0, bufferSize: 1024, format: fmt) { [weak self] buffer, _ in
             Task { @MainActor in
                 self?.processAudioBuffer(buffer)
             }
@@ -296,17 +322,18 @@ final class AudioRecorderEngine: ObservableObject {
         let fileURL = documentsPath.appendingPathComponent(fileName)
         
         // Create recording format
-        guard let recordingFormat = AVAudioFormat(
-            commonFormat: .pcmFormatInt16,
-            sampleRate: audioConfiguration.sampleRate,
-            channels: audioConfiguration.channels,
-            interleaved: false
-        ) else {
-            throw AudioRecordingError.fileCreationFailure
-        }
+        let fmt = audioEngine.inputNode.inputFormat(forBus: 0)
+
+        let settings:[String: Any] = [
+            AVFormatIDKey:           kAudioFormatLinearPCM,
+            AVSampleRateKey:         fmt.sampleRate,
+            AVNumberOfChannelsKey:   fmt.channelCount,
+            AVLinearPCMBitDepthKey:  16,
+            AVLinearPCMIsFloatKey:   false
+        ]
         
         do {
-            audioFile = try AVAudioFile(forWriting: fileURL, settings: recordingFormat.settings)
+            audioFile = try AVAudioFile(forWriting: fileURL, settings: settings)
             currentRecordingURL = fileURL
         } catch {
             throw AudioRecordingError.fileCreationFailure
@@ -319,29 +346,122 @@ final class AudioRecorderEngine: ObservableObject {
         
         do {
             try audioFile.write(from: buffer)
+            // Calculate audio level for real-time monitoring
+            calculateAudioLevel(from: buffer)
         } catch {
             print("Failed to write audio buffer: \(error)")
         }
         
-        // Calculate audio level for real-time monitoring
-        calculateAudioLevel(from: buffer)
+        
+        
+        
     }
     
     private func calculateAudioLevel(from buffer: AVAudioPCMBuffer) {
         guard let channelData = buffer.floatChannelData?[0] else { return }
         
+        // Guard against frame count overflow (though unlikely with UInt32 -> Int conversion)
+        guard buffer.frameLength <= Int.max else { return }
+        
         let frameCount = Int(buffer.frameLength)
+        guard frameCount > 0 else { return }
+        
         var sum: Float = 0
         
         for i in 0..<frameCount {
-            sum += abs(channelData[i])
+            sum += channelData[i] * channelData[i]
         }
+        let rms = sqrt(sum / Float(frameCount))
+                
+                
+        let db: Float = rms > 0 ? 20 * log10(rms) : -80
+
         
-        let averageLevel = sum / Float(frameCount)
-        let normalizedLevel = min(max(averageLevel, 0.0), 1.0)
+        self.audioLevel = db
+        self.extractWaveformSamples(db)
         
-        audioLevel = normalizedLevel
+        
     }
+    
+    private func extractWaveformSamples(_ db: Float) {
+        
+        
+        // Normalize for UI display (adjust multiplier as needed)
+        let normalized = max(0, min(1, (db + 80) / 80))
+
+        
+        // Add to waveform samples
+        audioSamples.append(normalized)
+        
+        // Keep only the last 100 samples for performance
+        if audioSamples.count > 10 {
+            audioSamples.removeFirst(audioSamples.count - 10)
+        }
+    }
+    
+//    /// Performs FFT analysis on audio data to extract frequency magnitudes
+//    private func performFFTAnalysis(data: UnsafeMutablePointer<Float>, frameLength: Int) {
+//        guard let fftSetup = fftSetup else { return }
+//        
+//        // Ensure we have enough data for FFT
+//        let dataCount = min(frameLength, FFTConstants.bufferSize)
+//        guard dataCount > 0 else { return }
+//        
+//        // Copy data to real parts array, pad with zeros if necessary
+//        realParts.withUnsafeMutableBufferPointer { realBuffer in
+//            // Clear the buffer first
+//            realBuffer.baseAddress?.initialize(repeating: 0, count: FFTConstants.bufferSize)
+//            // Copy available data
+//            memcpy(realBuffer.baseAddress, data, dataCount * MemoryLayout<Float>.size)
+//        }
+//        
+//        // Clear imaginary parts
+//        imaginaryParts.withUnsafeMutableBufferPointer { imagBuffer in
+//            imagBuffer.baseAddress?.initialize(repeating: 0, count: FFTConstants.bufferSize)
+//        }
+//        
+//        // Create split complex structure for FFT
+//        var splitComplex = DSPSplitComplex(
+//            realp: &realParts,
+//            imagp: &imaginaryParts
+//        )
+//        
+//        // Perform FFT
+//        vDSP_fft_zrip(fftSetup, &splitComplex, 1, log2n, FFTDirection(FFT_FORWARD))
+//        
+//        // Calculate magnitudes
+//        vDSP_zvmags(&splitComplex, 1, &magnitudes, 1, vDSP_Length(FFTConstants.bufferSize / 2))
+//        
+//        // Process magnitudes for visualization
+//        processMagnitudesForVisualization()
+//    }
+    
+    /// Processes FFT magnitudes for waveform visualization
+//    private func processMagnitudesForVisualization() {
+//        // Take only the amount we want to display
+//        let displayMagnitudes = Array(magnitudes.prefix(FFTConstants.sampleAmount))
+//        
+//        // Apply magnitude limit to prevent spikes
+//        let limitedMagnitudes = displayMagnitudes.map { min($0, FFTConstants.magnitudeLimit) }
+//        
+//        // Normalize magnitudes for display (0.0 to 1.0 range)
+//        let maxMagnitude = limitedMagnitudes.max() ?? 1.0
+//        let normalizedMagnitudes = limitedMagnitudes.map {
+//            maxMagnitude > 0 ? $0 / maxMagnitude : 0.0
+//        }
+//        
+//        // Downsample for smoother visualization
+//        var downsampledMagnitudes: [Float] = []
+//        for i in stride(from: 0, to: normalizedMagnitudes.count, by: FFTConstants.downsampleFactor) {
+//            let endIndex = min(i + FFTConstants.downsampleFactor, normalizedMagnitudes.count)
+//            let chunk = Array(normalizedMagnitudes[i..<endIndex])
+//            let average = chunk.reduce(0, +) / Float(chunk.count)
+//            downsampledMagnitudes.append(average)
+//        }
+//        
+//        // Update the published property
+//        fftMagnitudes = downsampledMagnitudes
+//    }
     
     private func startRecordingTimer() {
         recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
@@ -374,6 +494,8 @@ final class AudioRecorderEngine: ObservableObject {
     
     private func stopAudioLevelMonitoring() {
         audioLevel = 0.0
+        audioSamples.removeAll()
+        fftMagnitudes = Array(repeating: 0, count: FFTConstants.sampleAmount)
     }
     
     private func checkStorageSpace() throws {
@@ -459,4 +581,4 @@ final class AudioRecorderEngine: ObservableObject {
         try? audioSession.deactivateSession()
         cancellables.removeAll()
     }
-} 
+}

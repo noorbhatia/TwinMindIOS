@@ -11,15 +11,17 @@ final class AudioManager: ObservableObject {
     @Published var isPaused = false
     @Published var currentRecordingDuration: TimeInterval = 0
     @Published var audioLevel: Float = 0.0
-    @Published var recordingState: AudioRecorderEngine.RecordingState = .stopped
+    @Published var audioSamples: [Float] = []
+    @Published var fftMagnitudes: [Float] = []
+    @Published var recordingState: RecordingState = .stopped
     @Published var isPermissionGranted = false
     @Published var currentAudioRoute = "Unknown"
     @Published var isBackgroundRecordingEnabled = false
     @Published var backgroundTimeRemaining: TimeInterval = 0
-    @Published var audioConfiguration: AudioRecorderEngine.AudioConfiguration = .high
+    @Published var audioConfiguration: AudioConfiguration = .high
     
     // Error handling
-    @Published var lastError: AudioRecorderEngine.AudioRecordingError?
+    @Published var lastError: AudioRecordingError?
     @Published var showingErrorAlert = false
     
     // MARK: - Private Components
@@ -30,6 +32,7 @@ final class AudioManager: ObservableObject {
     // State management
     private var cancellables = Set<AnyCancellable>()
     private var currentRecordingURL: URL?
+    private var recordingStartTime: Date?
     
     // MARK: - Initialization
     init() {
@@ -70,9 +73,10 @@ final class AudioManager: ObservableObject {
             audioRecorder.configureAudio(with: audioConfiguration)
             
             // Start recording
+            recordingStartTime = Date()
             try await audioRecorder.startRecording()
             
-        } catch let error as AudioRecorderEngine.AudioRecordingError {
+        } catch let error as AudioRecordingError {
             handleError(error)
         } catch {
             handleError(.audioEngineFailure(error.localizedDescription))
@@ -88,7 +92,7 @@ final class AudioManager: ObservableObject {
     func resumeRecording() {
         do {
             try audioRecorder.resumeRecording()
-        } catch let error as AudioRecorderEngine.AudioRecordingError {
+        } catch let error as AudioRecordingError {
             handleError(error)
         } catch {
             handleError(.audioEngineFailure(error.localizedDescription))
@@ -102,17 +106,23 @@ final class AudioManager: ObservableObject {
         return currentRecordingURL
     }
     
+    /// Gets recording metadata for creating RecordingSession
+    func getRecordingMetadata() -> (startTime: Date?, duration: TimeInterval, configuration: AudioConfiguration) {
+        return (recordingStartTime, currentRecordingDuration, audioConfiguration)
+    }
+    
     /// Cancels recording and deletes the file
     func cancelRecording() {
         audioRecorder.cancelRecording()
         backgroundTaskManager.endBackgroundTask()
         currentRecordingURL = nil
+        recordingStartTime = nil
     }
     
     // MARK: - Configuration Methods
     
     /// Updates audio recording quality
-    func setAudioConfiguration(_ configuration: AudioRecorderEngine.AudioConfiguration) {
+    func setAudioConfiguration(_ configuration: AudioConfiguration) {
         audioConfiguration = configuration
         audioRecorder.configureAudio(with: configuration)
     }
@@ -143,8 +153,14 @@ final class AudioManager: ObservableObject {
     
     /// Formats duration for display
     func formatDuration(_ duration: TimeInterval) -> String {
-        let minutes = Int(duration) / 60
-        let seconds = Int(duration) % 60
+        // Guard against invalid or extreme values that could cause Int overflow
+        guard duration.isFinite && duration >= 0 && duration <= Double(Int.max) else {
+            return "00:00"
+        }
+        
+        let totalSeconds = Int(duration)
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
         return String(format: "%02d:%02d", minutes, seconds)
     }
     
@@ -192,6 +208,14 @@ final class AudioManager: ObservableObject {
         
         audioRecorder.$audioLevel
             .assign(to: \.audioLevel, on: self)
+            .store(in: &cancellables)
+        
+        audioRecorder.$audioSamples
+            .assign(to: \.audioSamples, on: self)
+            .store(in: &cancellables)
+        
+        audioRecorder.$fftMagnitudes
+            .assign(to: \.fftMagnitudes, on: self)
             .store(in: &cancellables)
         
         audioRecorder.$recordingState
@@ -279,7 +303,7 @@ final class AudioManager: ObservableObject {
         await audioSession.checkRecordPermission()
     }
     
-    private func handleError(_ error: AudioRecorderEngine.AudioRecordingError) {
+    private func handleError(_ error: AudioRecordingError) {
         lastError = error
         showingErrorAlert = true
         print("Audio error: \(error.localizedDescription)")
@@ -360,19 +384,26 @@ extension AudioManager {
 extension AudioManager {
     
     /// Available audio quality presets
-    static let audioQualityPresets: [AudioRecorderEngine.AudioConfiguration] = [
+    static let audioQualityPresets: [AudioConfiguration] = [
         .high,
         .medium,
         .low
     ]
     
     /// Gets display name for audio configuration
-    func getConfigurationDisplayName(_ config: AudioRecorderEngine.AudioConfiguration) -> String {
+    func getConfigurationDisplayName(_ config: AudioConfiguration) -> String {
         switch config.sampleRate {
         case 44100: return "High Quality (44.1 kHz)"
         case 22050: return "Medium Quality (22 kHz)"
         case 16000: return "Low Quality (16 kHz)"
-        default: return "Custom (\(Int(config.sampleRate / 1000)) kHz)"
+        default: 
+            // Guard against overflow when converting sample rate to Int
+            let sampleRateInKHz = config.sampleRate / 1000
+            if sampleRateInKHz.isFinite && sampleRateInKHz <= Double(Int.max) && sampleRateInKHz >= 0 {
+                return "Custom (\(Int(sampleRateInKHz)) kHz)"
+            } else {
+                return "Custom (Unknown kHz)"
+            }
         }
     }
 } 

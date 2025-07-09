@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		F2C9810E2E1D403A00F4C391 /* DSWaveformImage in Frameworks */ = {isa = PBXBuildFile; productRef = F2C9810D2E1D403A00F4C391 /* DSWaveformImage */; };
+		F2C981102E1D403A00F4C391 /* DSWaveformImageViews in Frameworks */ = {isa = PBXBuildFile; productRef = F2C9810F2E1D403A00F4C391 /* DSWaveformImageViews */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		F2A47B982E1CED8900C752FB /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -65,6 +70,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F2C9810E2E1D403A00F4C391 /* DSWaveformImage in Frameworks */,
+				F2C981102E1D403A00F4C391 /* DSWaveformImageViews in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -125,6 +132,8 @@
 			);
 			name = TwinMindAssignment;
 			packageProductDependencies = (
+				F2C9810D2E1D403A00F4C391 /* DSWaveformImage */,
+				F2C9810F2E1D403A00F4C391 /* DSWaveformImageViews */,
 			);
 			productName = TwinMindAssignment;
 			productReference = F2A47B852E1CED8800C752FB /* TwinMindAssignment.app */;
@@ -208,6 +217,9 @@
 			);
 			mainGroup = F2A47B7C2E1CED8800C752FB;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				F2C9810C2E1D403A00F4C391 /* XCRemoteSwiftPackageReference "DSWaveformImage" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F2A47B862E1CED8800C752FB /* Products */;
 			projectDirPath = "";
@@ -583,6 +595,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		F2C9810C2E1D403A00F4C391 /* XCRemoteSwiftPackageReference "DSWaveformImage" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/dmrschmidt/DSWaveformImage";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 14.2.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		F2C9810D2E1D403A00F4C391 /* DSWaveformImage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F2C9810C2E1D403A00F4C391 /* XCRemoteSwiftPackageReference "DSWaveformImage" */;
+			productName = DSWaveformImage;
+		};
+		F2C9810F2E1D403A00F4C391 /* DSWaveformImageViews */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F2C9810C2E1D403A00F4C391 /* XCRemoteSwiftPackageReference "DSWaveformImage" */;
+			productName = DSWaveformImageViews;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = F2A47B7D2E1CED8800C752FB /* Project object */;
 }

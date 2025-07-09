@@ -12,7 +12,9 @@ import SwiftData
 struct TwinMindAssignmentApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            RecordingSession.self,
+            AudioSegment.self,
+            Transcription.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
