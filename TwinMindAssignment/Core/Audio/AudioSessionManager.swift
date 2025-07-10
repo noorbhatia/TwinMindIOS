@@ -48,13 +48,13 @@ final class AudioSessionManager: ObservableObject {
         )
         
         // Set preferred sample rate and I/O buffer duration for optimal performance
-        try audioSession.setPreferredSampleRate(44100.0)
+        try audioSession.setPreferredSampleRate(44_100)
         try audioSession.setPreferredIOBufferDuration(0.01) // 10ms buffer for low latency
     }
     
     /// Activates the audio session
     func activateSession() throws {
-        try audioSession.setActive(true, options: [])
+        try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
         isSessionActive = true
     }
     

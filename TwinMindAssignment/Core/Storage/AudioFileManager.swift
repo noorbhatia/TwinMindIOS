@@ -105,7 +105,7 @@ class AudioFileManager: ObservableObject {
     // MARK: - File Operations
     
     /// Save audio file with optional encryption
-    func saveAudioFile(from sourceURL: URL, for session: RecordingSession) async throws -> URL {
+    func saveAudioFile(from sourceURL: URL, for session: Session) async throws -> URL {
         // Check available storage
         try await checkStorageCapacity(requiredSize: getFileSize(at: sourceURL))
         
@@ -248,8 +248,8 @@ class AudioFileManager: ObservableObject {
         let cutoffDate = Date().addingTimeInterval(-configuration.retentionPeriod)
         
         // Fetch old sessions from SwiftData
-        let descriptor = FetchDescriptor<RecordingSession>(
-            predicate: #Predicate<RecordingSession> { session in
+        let descriptor = FetchDescriptor<Session>(
+            predicate: #Predicate<Session> { session in
                 session.startTime < cutoffDate
             }
         )
@@ -302,7 +302,7 @@ class AudioFileManager: ObservableObject {
     private func removeOldestRecording() async -> Bool {
         guard let modelContext = modelContext else { return false }
         
-        let descriptor = FetchDescriptor<RecordingSession>(
+        let descriptor = FetchDescriptor<Session>(
             sortBy: [SortDescriptor(\.startTime, order: .forward)]
         )
         
@@ -417,7 +417,7 @@ class AudioFileManager: ObservableObject {
     }
     
     /// Generate secure filename for session
-    private func generateSecureFilename(for session: RecordingSession) -> String {
+    private func generateSecureFilename(for session: Session) -> String {
         let timestamp = Int(session.startTime.timeIntervalSince1970)
         let randomComponent = UUID().uuidString.prefix(8)
         return "recording_\(timestamp)_\(randomComponent).m4a"

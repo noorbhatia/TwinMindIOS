@@ -2,16 +2,16 @@ import SwiftUI
 import SwiftData
 
 struct SessionListView: View {
-    let sessions: [RecordingSession]
+    let sessions: [Session]
     let segmentationService: AudioSegmentationService
     let transcriptionService: TranscriptionService
     
     @State private var searchText = ""
-    @State private var selectedSession: RecordingSession?
+    @State private var selectedSession: Session?
     @State private var showingDeleteAlert = false
-    @State private var sessionToDelete: RecordingSession?
-    
-    var filteredSessions: [RecordingSession] {
+    @State private var sessionToDelete: Session?
+    @StateObject var player = AudioPlayer()
+    var filteredSessions: [Session] {
         if searchText.isEmpty {
             return sessions.sorted { $0.startTime > $1.startTime }
         } else {
@@ -22,7 +22,7 @@ struct SessionListView: View {
         }
     }
     
-    var groupedSessions: [(String, [RecordingSession])] {
+    var groupedSessions: [(String, [Session])] {
         let grouped = Dictionary(grouping: filteredSessions) { session in
             DateFormatter.sessionGroupFormatter.string(from: session.startTime)
         }
@@ -51,8 +51,9 @@ struct SessionListView: View {
         .sheet(item: $selectedSession) { session in
             SessionDetailView(
                 session: session,
-                segmentationService: segmentationService,
-                transcriptionService: transcriptionService
+                segmentationService:segmentationService,
+                transcriptionService: transcriptionService,
+                player: player
             )
         }
         .alert("Delete Session", isPresented: $showingDeleteAlert) {
@@ -107,7 +108,7 @@ struct SessionListView: View {
         .listStyle(.insetGrouped)
     }
     
-    private func deleteSession(_ session: RecordingSession) {
+    private func deleteSession(_ session: Session) {
         withAnimation {
             // Clean up associated files
             Task {
@@ -121,7 +122,7 @@ struct SessionListView: View {
 }
 
 struct SessionRowView: View {
-    let session: RecordingSession
+    let session: Session
     let onTap: () -> Void
     let onDelete: () -> Void
     

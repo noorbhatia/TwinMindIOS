@@ -118,7 +118,7 @@ final class TranscriptionService: ObservableObject {
     }
     
     /// Transcribes all unprocessed segments for a recording session
-    func transcribeSession(_ session: RecordingSession) async {
+    func transcribeSession(_ session: Session) async {
         let unprocessedSegments = session.segments.filter { !$0.isProcessed && $0.shouldRetryTranscription }
         
         guard !unprocessedSegments.isEmpty else { return }

@@ -1,5 +1,5 @@
 //
-//  RecordingSessionModel.swift
+//  SessionModel.swift
 //  TwinMindAssignment
 //
 //  Created by Noor Bhatia on 08/07/25.
@@ -11,7 +11,7 @@ import UIKit
 
 /// Represents a complete recording session with metadata and segments
 @Model
-final class RecordingSession {
+final class Session {
     
     // MARK: - Core Properties
     var id: UUID
@@ -144,28 +144,28 @@ final class RecordingSession {
 }
 // MARK: - Query Helpers
 
-extension RecordingSession {
+extension Session {
     
     /// Predicate for completed sessions
-    static var completedSessionsPredicate: Predicate<RecordingSession> {
-        #Predicate<RecordingSession> { session in
+    static var completedSessionsPredicate: Predicate<Session> {
+        #Predicate<Session> { session in
             session.isCompleted == true
         }
     }
     
     /// Predicate for sessions from today
-    static var todaySessionsPredicate: Predicate<RecordingSession> {
+    static var todaySessionsPredicate: Predicate<Session> {
         let startOfDay = Calendar.current.startOfDay(for: Date())
         let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
         
-        return #Predicate<RecordingSession> { session in
+        return #Predicate<Session> { session in
             session.createdAt >= startOfDay && session.createdAt < endOfDay
         }
     }
     
     /// Predicate for sessions with incomplete transcriptions
-    static var incompleteTranscriptionsPredicate: Predicate<RecordingSession> {
-        #Predicate<RecordingSession> { session in
+    static var incompleteTranscriptionsPredicate: Predicate<Session> {
+        #Predicate<Session> { session in
             session.isCompleted == true &&
             session.segments.contains { segment in
                 segment.transcription?.isCompleted != true

@@ -229,9 +229,11 @@ struct RecordingControlsView: View {
                 .cornerRadius(6)
         }
     }
-    
-    // MARK: - Computed Properties
-    
+
+}
+
+// MARK: - Computed Properties
+extension RecordingControlsView{
     private var recordingStateText: String {
         switch audioManager.recordingState {
         case .stopped:
@@ -288,9 +290,9 @@ struct RecordingControlsView: View {
             return .red
         }
     }
-    
-    // MARK: - Actions
-    
+}
+// MARK: - Actions
+extension RecordingControlsView{
     private func toggleRecording() {
         Task {
             if !audioManager.isRecording {
@@ -322,7 +324,7 @@ struct RecordingControlsView: View {
             }
             
             // Create RecordingSession
-            let session = RecordingSession(
+            let session = Session(
                 startTime: startTime,
                 sampleRate: config.sampleRate,
                 bitDepth: Int(config.bitDepth),
@@ -384,7 +386,6 @@ struct RecordingControlsView: View {
         }
     }
     
-
 }
 
 // MARK: - Custom Button Style

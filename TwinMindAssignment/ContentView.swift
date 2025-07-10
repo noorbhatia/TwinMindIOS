@@ -10,7 +10,7 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var recordingSessions: [RecordingSession]
+    @Query private var recordingSessions: [Session]
     @StateObject private var audioManager = AudioManager()
     @State private var segmentationService: AudioSegmentationService?
     @State private var transcriptionService: TranscriptionService?
@@ -96,5 +96,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: RecordingSession.self, inMemory: true)
+        .modelContainer(for: Session.self, inMemory: true)
 }

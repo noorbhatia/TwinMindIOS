@@ -12,7 +12,7 @@ import SwiftData
 struct TwinMindAssignmentApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            RecordingSession.self,
+            Session.self,
             AudioSegment.self,
             Transcription.self
         ])

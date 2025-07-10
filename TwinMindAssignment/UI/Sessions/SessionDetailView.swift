@@ -3,10 +3,10 @@ import SwiftData
 import AVFoundation
 
 struct SessionDetailView: View {
-    let session: RecordingSession
+    let session: Session
     let segmentationService: AudioSegmentationService
     let transcriptionService: TranscriptionService
-    
+    @ObservedObject var player: AudioPlayer
     @State private var isSegmenting = false
     @State private var isTranscribing = false
     @State private var showingDeleteAlert = false
@@ -22,7 +22,7 @@ struct SessionDetailView: View {
                     sessionHeaderView
                     
                     // Audio Waveform
-                    audioWaveformView
+//                    audioWaveformView
                     
                     // Session Metadata
                     sessionMetadataView
@@ -83,6 +83,16 @@ struct SessionDetailView: View {
             Text(session.title)
                 .font(.largeTitle)
                 .fontWeight(.bold)
+            Button {
+                let urls = session.segments.compactMap{$0.fileURL}
+                player.play(urls: urls)
+            } label: {
+                Image(systemName: "play.circle.fill")
+                    .font(.title2)
+                    .foregroundColor(.blue)
+            }
+            .buttonStyle(BorderlessButtonStyle())
+            
             
             HStack {
                 Label(session.formattedDuration, systemImage: "clock")
@@ -187,9 +197,6 @@ struct SessionDetailView: View {
                         .font(.body)
                         .foregroundColor(.secondary)
                     
-                    Text("Generate segments to start transcription")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)

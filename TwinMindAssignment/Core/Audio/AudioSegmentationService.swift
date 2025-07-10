@@ -63,7 +63,7 @@ final class AudioSegmentationService: ObservableObject {
     
     /// Segments a recording session into smaller chunks for transcription
     func segmentRecording(
-        session: RecordingSession,
+        session: Session,
         config: SegmentationConfig = .defaultConfig
     ) async throws {
         
@@ -158,7 +158,7 @@ final class AudioSegmentationService: ObservableObject {
     }
     
     /// Cleans up segment files for a specific session
-    func cleanupSegments(for session: RecordingSession) async {
+    func cleanupSegments(for session: Session) async {
         await cleanupPartialSegments(sessionId: session.id)
         
         // Remove segments from model context
@@ -170,7 +170,7 @@ final class AudioSegmentationService: ObservableObject {
     }
     
     /// Gets the total size of all segment files for a session
-    func getSegmentsTotalSize(for session: RecordingSession) -> Int64 {
+    func getSegmentsTotalSize(for session: Session) -> Int64 {
         return session.segments.reduce(0) { total, segment in
             total + segment.fileSize
         }
@@ -406,7 +406,7 @@ extension AudioSegmentationService {
     
     /// Validates available storage space before segmentation
     func validateStorageSpace(
-        for session: RecordingSession,
+        for session: Session,
         config: SegmentationConfig = .defaultConfig
     ) throws {
         guard let sourceURL = session.fileURL else {

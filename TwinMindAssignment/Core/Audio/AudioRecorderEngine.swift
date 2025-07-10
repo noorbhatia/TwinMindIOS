@@ -138,6 +138,8 @@ final class AudioRecorderEngine: ObservableObject {
     private var recordingStartTime: Date?
     private var pauseStartTime: Date?
     private var totalPausedDuration: TimeInterval = 0
+    var segments: [AudioSegment]
+    var currentSegmentIndex = 0
     
     // Audio configuration
     private var audioConfiguration: AudioConfiguration = .high
@@ -149,38 +151,22 @@ final class AudioRecorderEngine: ObservableObject {
     // Cancellables for Combine
     private var cancellables = Set<AnyCancellable>()
     
-    // MARK: - FFT Setup Properties
-    private var fftSetup: FFTSetup?
-    private let log2n = vDSP_Length(log2(Float(FFTConstants.bufferSize)))
-    private var realParts = [Float](repeating: 0, count: FFTConstants.bufferSize)
-    private var imaginaryParts = [Float](repeating: 0, count: FFTConstants.bufferSize)
-    private var magnitudes = [Float](repeating: 0, count: FFTConstants.bufferSize / 2)
     
     // MARK: - Initialization
     init(audioSession: AudioSessionManager) {
         self.audioSession = audioSession
-        setupFFT()
+        
         setupAudioEngineObservers()
         setupNotificationObservers()
     }
     
     deinit {
-        // Destroy FFT setup
-        if let setup = fftSetup {
-            vDSP_destroy_fftsetup(setup)
-        }
+        
     }
     
     // MARK: - Public Methods
     
-    /// Sets up the FFT for frequency analysis
-    private func setupFFT() {
-        fftSetup = vDSP_create_fftsetup(log2n, FFTRadix(kFFTRadix2))
-        guard fftSetup != nil else {
-            print("Failed to create FFT setup")
-            return
-        }
-    }
+    
     
     /// Configures audio recording settings
     func configureAudio(with configuration: AudioConfiguration) {
@@ -304,6 +290,25 @@ final class AudioRecorderEngine: ObservableObject {
     }
     
     // MARK: - Private Methods
+    
+    /// rotate segment after timer
+    private func rotateAudioSegment() {
+        guard isRecording, let oldURL = currentRecordingURL else { return }
+        handleFinishedSegment(oldURL)
+        
+        //Create new recording file
+        try? createRecordingFile()
+    }
+    
+    private func handleFinishedSegment(_ url: URL) {
+        
+        var segment = AudioSegment()
+        segments.append(segment)
+        
+        //TODO: start transcription immediately after segmentation
+        
+        
+    }
     
     private func setupAudioEngine() throws {
         let fmt = audioEngine.inputNode.inputFormat(forBus: 0)

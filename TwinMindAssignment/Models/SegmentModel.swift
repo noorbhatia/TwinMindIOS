@@ -33,7 +33,7 @@ final class AudioSegment {
     var updatedAt: Date
     
     // MARK: - Relationships
-    @Relationship var session: RecordingSession?
+    @Relationship var session: Session?
     @Relationship(deleteRule: .cascade)
     var transcription: Transcription?
     
@@ -59,7 +59,7 @@ final class AudioSegment {
         segmentIndex: Int,
         startTime: TimeInterval,
         endTime: TimeInterval,
-        session: RecordingSession? = nil
+        session: Session? = nil
     ) {
         self.id = UUID()
         self.segmentIndex = segmentIndex
