@@ -1,4 +1,5 @@
 import SwiftUI
+import Speech
 import SwiftData
 import DSWaveformImage
 import DSWaveformImageViews
@@ -68,8 +69,20 @@ struct RecordingControlsView: View {
                 print("Recording stopped - samples will be cleared by engine")
             }
         }
+        .onAppear {
+            Task{
+                await requestSpeechRecognitionPermission()
+            }
+        }
     }
     
+    func requestSpeechRecognitionPermission() async -> SFSpeechRecognizerAuthorizationStatus {
+        return await withCheckedContinuation { continuation in
+            SFSpeechRecognizer.requestAuthorization { status in
+                continuation.resume(returning: status)
+            }
+        }
+    }
     // MARK: - Recording Status Section
     
     private var recordingStatusSection: some View {
@@ -489,7 +502,4 @@ struct RecordingSettingsView: View {
 
 // MARK: - Preview
 
-#Preview {
-    RecordingControlsView(audioManager: AudioManager())
-        .padding()
-} 
+

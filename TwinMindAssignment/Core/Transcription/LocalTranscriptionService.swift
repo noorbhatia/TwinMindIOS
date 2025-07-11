@@ -57,7 +57,7 @@ final class LocalTranscriptionService: ObservableObject {
                     continuation.resume(throwing: LocalTranscriptionError.recognitionFailed(error.localizedDescription))
                     return
                 }
-                
+
                 guard let result = result, result.isFinal else {
                     return
                 }

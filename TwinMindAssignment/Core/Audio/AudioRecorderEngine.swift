@@ -2,6 +2,7 @@ import Foundation
 import AVFoundation
 import Combine
 import Accelerate
+import SwiftData
 
 
 enum AudioRecordingError: LocalizedError , Equatable{
@@ -138,8 +139,15 @@ final class AudioRecorderEngine: ObservableObject {
     private var recordingStartTime: Date?
     private var pauseStartTime: Date?
     private var totalPausedDuration: TimeInterval = 0
-    var segments: [AudioSegment]
-    var currentSegmentIndex = 0
+    private var currentSegmentIndex = 0
+    private var segmentDuration: TimeInterval = 30
+    private var segmentTimer: DispatchSourceTimer?
+    
+    private let transcriptionService: TranscriptionService
+    private let modelContext: ModelContext
+    
+    // Current session tracking
+    private var currentSession: Session?
     
     // Audio configuration
     private var audioConfiguration: AudioConfiguration = .high
@@ -153,8 +161,14 @@ final class AudioRecorderEngine: ObservableObject {
     
     
     // MARK: - Initialization
-    init(audioSession: AudioSessionManager) {
+    init(
+        audioSession: AudioSessionManager,
+        transcriptionService: TranscriptionService,
+        modelContext: ModelContext
+    ) {
         self.audioSession = audioSession
+        self.transcriptionService = transcriptionService
+        self.modelContext = modelContext
         
         setupAudioEngineObservers()
         setupNotificationObservers()
@@ -195,12 +209,15 @@ final class AudioRecorderEngine: ObservableObject {
         // Check storage space
         try checkStorageSpace()
         
+        // Create new session
+        createNewSession()
+        
         // Setup audio engine
         try setupAudioEngine()
         
         // Create recording file
         try createRecordingFile()
-        
+        scheduleSegmentTimer()
         // Start recording
         do {
             try audioEngine.start()
@@ -209,6 +226,7 @@ final class AudioRecorderEngine: ObservableObject {
             recordingState = .recording
             recordingStartTime = Date()
             totalPausedDuration = 0
+            currentSegmentIndex = 0
             
             startRecordingTimer()
             startAudioLevelMonitoring()
@@ -222,6 +240,7 @@ final class AudioRecorderEngine: ObservableObject {
     /// Pauses audio recording
     func pauseRecording() {
         guard isRecording && !isPaused else { return }
+        segmentTimer?.suspend()
         
         audioEngine.pause()
         isPaused = true
@@ -234,7 +253,7 @@ final class AudioRecorderEngine: ObservableObject {
     /// Resumes audio recording
     func resumeRecording() throws {
         guard isPaused else { return }
-        
+        segmentTimer?.resume()
         do {
             try audioEngine.start()
             isPaused = false
@@ -257,7 +276,8 @@ final class AudioRecorderEngine: ObservableObject {
     /// Stops audio recording and returns the file URL
     func stopRecording() -> URL? {
         guard isRecording else { return nil }
-        
+        segmentTimer?.cancel()
+        segmentTimer = nil
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
         
@@ -267,6 +287,14 @@ final class AudioRecorderEngine: ObservableObject {
         
         stopRecordingTimer()
         stopAudioLevelMonitoring()
+        
+        // Handle the final segment if there's a current recording
+        if let currentURL = currentRecordingURL {
+            handleFinishedSegment(currentURL)
+        }
+        
+        // Complete the session
+        completeCurrentSession()
         
         audioFile = nil
         
@@ -285,6 +313,13 @@ final class AudioRecorderEngine: ObservableObject {
             try? FileManager.default.removeItem(at: url)
         }
         
+        // Cancel the current session
+        if let session = currentSession {
+            modelContext.delete(session)
+            try? modelContext.save()
+            currentSession = nil
+        }
+        
         currentRecordingDuration = 0
         audioLevel = 0.0
     }
@@ -301,13 +336,86 @@ final class AudioRecorderEngine: ObservableObject {
     }
     
     private func handleFinishedSegment(_ url: URL) {
+        guard let session = currentSession else { return }
         
-        var segment = AudioSegment()
-        segments.append(segment)
+        // Calculate segment timing
+        let segmentStartTime = TimeInterval(currentSegmentIndex) * segmentDuration
+        let segmentEndTime = segmentStartTime + segmentDuration
         
-        //TODO: start transcription immediately after segmentation
+        // Create new AudioSegment
+        let audioSegment = AudioSegment(
+            segmentIndex: currentSegmentIndex,
+            startTime: segmentStartTime,
+            endTime: segmentEndTime,
+            session: session
+        )
         
+        // Get file size and update segment
+        do {
+            let fileSize = try getFileSize(url: url)
+            audioSegment.updateFile(url: url, size: fileSize)
+            
+            // Add segment to session and model context
+            session.segments.append(audioSegment)
+            modelContext.insert(audioSegment)
+            
+            // Save immediately
+            try modelContext.save()
+            
+            // Queue for transcription
+            Task {
+                await transcriptionService.transcribeSegment(audioSegment)
+            }
+            
+            // Increment segment index for next segment
+            currentSegmentIndex += 1
+            
+        } catch {
+            print("Failed to handle finished segment: \(error)")
+        }
+    }
+    
+    /// Creates a new recording session
+    private func createNewSession() {
+        let session = Session(
+            startTime: Date(),
+            sampleRate: audioConfiguration.sampleRate,
+            bitDepth: Int(audioConfiguration.bitDepth),
+            channels: Int(audioConfiguration.channels),
+            audioFormat: audioConfiguration.fileFormat.fileExtension,
+            audioQuality: getQualityString()
+        )
         
+        currentSession = session
+        modelContext.insert(session)
+    }
+    
+    /// Returns audio quality string based on configuration
+    private func getQualityString() -> String {
+        switch audioConfiguration.sampleRate {
+        case 44100: return "High"
+        case 22050: return "Medium"
+        case 16000: return "Low"
+        default: return "Custom"
+        }
+    }
+    
+    /// Gets file size for a given URL
+    private func getFileSize(url: URL) throws -> Int64 {
+        let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+        return attributes[.size] as? Int64 ?? 0
+    }
+    
+    /// Sets up a repeating timer to call `rotateAudioSegment` every `segmentDuration`.
+    private func scheduleSegmentTimer() {
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + segmentDuration,
+                       repeating: segmentDuration)
+        timer.setEventHandler { [weak self] in
+            self?.rotateAudioSegment()
+        }
+        timer.resume()
+        segmentTimer = timer
     }
     
     private func setupAudioEngine() throws {
@@ -585,5 +693,27 @@ final class AudioRecorderEngine: ObservableObject {
         stopRecording()
         try? audioSession.deactivateSession()
         cancellables.removeAll()
+    }
+    
+    /// Completes the current recording session
+    private func completeCurrentSession() {
+        guard let session = currentSession,
+              let fileURL = currentRecordingURL else { return }
+        
+        do {
+            let fileSize = try getFileSize(url: fileURL)
+            session.complete(
+                endTime: Date(),
+                fileURL: fileURL,
+                fileSize: fileSize,
+                wasInterrupted: recordingState == .paused,
+                backgroundRecordingUsed: false // TODO: Track background recording
+            )
+            
+            try modelContext.save()
+            currentSession = nil
+        } catch {
+            print("Failed to complete session: \(error)")
+        }
     }
 }

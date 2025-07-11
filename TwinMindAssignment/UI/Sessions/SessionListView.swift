@@ -50,9 +50,8 @@ struct SessionListView: View {
         }
         .sheet(item: $selectedSession) { session in
             SessionDetailView(
+
                 session: session,
-                segmentationService:segmentationService,
-                transcriptionService: transcriptionService,
                 player: player
             )
         }

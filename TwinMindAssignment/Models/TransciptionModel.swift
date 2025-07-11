@@ -16,7 +16,6 @@ final class Transcription {
     // MARK: - Core Properties
     var id: UUID
     var text: String
-    var confidence: Double
     var language: String?
     
     // MARK: - Processing Details
@@ -66,11 +65,6 @@ final class Transcription {
         }
     }
     
-    // MARK: - Computed Properties
-    var formattedConfidence: String {
-        String(format: "%.1f%%", confidence * 100)
-    }
-    
     var wordsPerMinute: Double? {
         guard let segment = audioSegment, segment.duration > 0, wordCount > 0 else { return nil }
         return Double(wordCount) / (segment.duration / 60.0)
@@ -89,7 +83,6 @@ final class Transcription {
     ) {
         self.id = UUID()
         self.text = text
-        self.confidence = confidence
         self.language = language
         
         // Processing details
@@ -121,9 +114,6 @@ final class Transcription {
         self.processedAt = Date()
         self.updatedAt = Date()
         
-        if let confidence = confidence {
-            self.confidence = confidence
-        }
         if let language = language {
             self.language = language
         }

@@ -10,19 +10,30 @@ import AVFoundation
 final class AudioPlayer: NSObject, ObservableObject, AVAudioPlayerDelegate {
     private var player: AVAudioPlayer?
     private var queue: [URL] = []
+    var isPlaying = false
     
-    
+    func toggle(_ urls: [URL]){
+        if isPlaying{
+            stop()
+        }else{
+            play(urls: urls)
+        }
+    }
     func play(urls: [URL]) {
+        guard !isPlaying else {return}
+        isPlaying = true
         stop()
         queue = urls
         playNext()
     }
     
     func stop() {
+        isPlaying = false
         player?.stop()
         player = nil
         queue.removeAll()
     }
+    
     
     
     private func playNext() {

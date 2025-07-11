@@ -11,7 +11,7 @@ import SwiftData
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var recordingSessions: [Session]
-    @StateObject private var audioManager = AudioManager()
+    @State private var audioManager: AudioManager?
     @State private var segmentationService: AudioSegmentationService?
     @State private var transcriptionService: TranscriptionService?
     @State private var selectedTab = 0
@@ -21,7 +21,11 @@ struct ContentView: View {
             // Recording Tab
             NavigationView {
                 VStack {
-                    RecordingControlsView(audioManager: audioManager)
+                    if let audioManager = audioManager {
+                        RecordingControlsView(audioManager: audioManager)
+                    } else {
+                        ProgressView("Initializing...")
+                    }
                     Spacer()
                 }
                 .navigationTitle("Audio Recorder")
@@ -57,7 +61,8 @@ struct ContentView: View {
             
             // Settings Tab
             Group {
-                if let transcriptionService = transcriptionService {
+                if let audioManager = audioManager,
+                   let transcriptionService = transcriptionService {
                     NavigationView {
                         SettingsView(
                             audioManager: audioManager,
@@ -79,6 +84,9 @@ struct ContentView: View {
         }
         .onAppear {
             // Initialize services with model context
+            if audioManager == nil {
+                audioManager = AudioManager(modelContext: modelContext)
+            }
             if segmentationService == nil {
                 segmentationService = AudioSegmentationService(modelContext: modelContext)
             }
@@ -87,8 +95,10 @@ struct ContentView: View {
             }
             
             // Request permissions on app launch if needed
-            Task {
-                await audioManager.checkPermissionStatus()
+            if let audioManager = audioManager {
+                Task {
+                    await audioManager.checkPermissionStatus()
+                }
             }
         }
     }

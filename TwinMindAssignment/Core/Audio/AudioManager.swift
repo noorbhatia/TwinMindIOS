@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import SwiftData
 
 /// Central coordinator for all audio recording functionality
 @MainActor
@@ -29,16 +30,28 @@ final class AudioManager: ObservableObject {
     private let audioRecorder: AudioRecorderEngine
     private let backgroundTaskManager: BackgroundTaskManager
     
+    private let transcriptionService: TranscriptionService
+    private let modelContext: ModelContext
+    
     // State management
     private var cancellables = Set<AnyCancellable>()
     private var currentRecordingURL: URL?
     private var recordingStartTime: Date?
     
     // MARK: - Initialization
-    init() {
+    init(modelContext: ModelContext) {
+        // Store dependencies
+        self.modelContext = modelContext
+        
         // Initialize core components
         self.audioSession = AudioSessionManager()
-        self.audioRecorder = AudioRecorderEngine(audioSession: audioSession)
+        
+        self.transcriptionService = TranscriptionService(modelContext: modelContext)
+        self.audioRecorder = AudioRecorderEngine(
+            audioSession: audioSession,
+            transcriptionService: transcriptionService,
+            modelContext: modelContext
+        )
         self.backgroundTaskManager = BackgroundTaskManager()
         
         setupBindings()

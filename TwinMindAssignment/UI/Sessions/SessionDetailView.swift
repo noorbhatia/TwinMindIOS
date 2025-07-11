@@ -3,12 +3,10 @@ import SwiftData
 import AVFoundation
 
 struct SessionDetailView: View {
-    let session: Session
-    let segmentationService: AudioSegmentationService
-    let transcriptionService: TranscriptionService
+    @Bindable var session: Session
     @ObservedObject var player: AudioPlayer
-    @State private var isSegmenting = false
-    @State private var isTranscribing = false
+    
+    
     @State private var showingDeleteAlert = false
     @State private var showingShareSheet = false
     @State private var shareText = ""
@@ -35,10 +33,10 @@ struct SessionDetailView: View {
                         segmentsListView
                     }
                     
-                    // Actions
-                    actionsView
+                    
                 }
-                .padding()
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
             }
             .navigationTitle("Session Details")
             .navigationBarTitleDisplayMode(.inline)
@@ -51,12 +49,7 @@ struct SessionDetailView: View {
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
-                        Button(action: shareTranscription) {
-                            Label("Share Transcription", systemImage: "square.and.arrow.up")
-                        }
-                        .disabled(session.fullTranscriptionText.isEmpty)
-                        
-                        Button(role: .destructive, action: { showingDeleteAlert = true }) {
+        Button(role: .destructive, action: { showingDeleteAlert = true }) {
                             Label("Delete Session", systemImage: "trash")
                         }
                     } label: {
@@ -83,16 +76,6 @@ struct SessionDetailView: View {
             Text(session.title)
                 .font(.largeTitle)
                 .fontWeight(.bold)
-            Button {
-                let urls = session.segments.compactMap{$0.fileURL}
-                player.play(urls: urls)
-            } label: {
-                Image(systemName: "play.circle.fill")
-                    .font(.title2)
-                    .foregroundColor(.blue)
-            }
-            .buttonStyle(BorderlessButtonStyle())
-            
             
             HStack {
                 Label(session.formattedDuration, systemImage: "clock")
@@ -173,10 +156,11 @@ struct SessionDetailView: View {
     }
     
     private var transcriptionOverviewView: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading) {
             HStack {
                 Text("Transcription")
-                    .font(.headline)
+                    .font(.title2)
+                    .bold()
                 
                 Spacer()
                 
@@ -186,6 +170,7 @@ struct SessionDetailView: View {
                         .foregroundColor(.secondary)
                 }
             }
+            .padding(.vertical, 6)
             
             if session.segments.isEmpty {
                 VStack(spacing: 12) {
@@ -201,39 +186,30 @@ struct SessionDetailView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)
             } else {
-                VStack(alignment: .leading, spacing: 12) {
-                    // Progress bar
-                    ProgressView(value: session.transcriptionProgress)
-                        .progressViewStyle(LinearProgressViewStyle())
+ 
+                if !session.fullTranscriptionText.isEmpty {
                     
-                    // Full transcription text
-                    if !session.fullTranscriptionText.isEmpty {
-                        ScrollView {
-                            Text(session.fullTranscriptionText)
-                                .font(.body)
-                                .padding()
-                                .background(Color(.systemBackground))
-                                .cornerRadius(8)
-                        }
-                        .frame(maxHeight: 200)
-                    } else {
-                        Text("Transcription pending...")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .italic()
-                    }
+                    Text(session.fullTranscriptionText)
+                        .font(.body)
+                    
+                    
+                } else {
+                    Text("Transcription pending...")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .italic()
                 }
+                
             }
         }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
     }
     
     private var segmentsListView: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading) {
             Text("Audio Segments")
-                .font(.headline)
+                .font(.title2)
+                .bold()
+                .padding(.bottom, 6)
             
             LazyVStack(spacing: 12) {
                 ForEach(session.segments.sorted { $0.segmentIndex < $1.segmentIndex }) { segment in
@@ -241,88 +217,17 @@ struct SessionDetailView: View {
                 }
             }
         }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
+        .padding(.top, 12)
     }
     
-    private var actionsView: some View {
-        VStack(spacing: 16) {
-            if session.segments.isEmpty && session.isCompleted {
-                Button(action: generateSegments) {
-                    HStack {
-                        if isSegmenting {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                        } else {
-                            Image(systemName: "scissors")
-                        }
-                        Text(isSegmenting ? "Generating Segments..." : "Generate Segments")
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-                }
-                .disabled(isSegmenting)
-            }
-            
-            if !session.segments.isEmpty {
-                Button(action: startTranscription) {
-                    HStack {
-                        if isTranscribing {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                        } else {
-                            Image(systemName: "text.bubble")
-                        }
-                        Text(isTranscribing ? "Transcribing..." : "Start Transcription")
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.green)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-                }
-                .disabled(isTranscribing || session.transcriptionProgress >= 1.0)
-            }
-        }
-    }
     
-    private func generateSegments() {
-        isSegmenting = true
-        Task {
-            do {
-                try await segmentationService.segmentRecording(session: session)
-            } catch {
-                print("Segmentation failed: \(error)")
-            }
-            await MainActor.run {
-                isSegmenting = false
-            }
-        }
-    }
     
-    private func startTranscription() {
-        isTranscribing = true
-        Task {
-            await transcriptionService.transcribeSession(session)
-            await MainActor.run {
-                isTranscribing = false
-            }
-        }
-    }
-    
-    private func shareTranscription() {
-        shareText = session.fullTranscriptionText
-        showingShareSheet = true
-    }
     
     private func deleteSession() {
         dismiss()
     }
 }
+
 
 struct MetadataItemView: View {
     let title: String
@@ -351,32 +256,13 @@ struct SegmentRowView: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text("Segment \(segment.segmentIndex + 1)")
-                        .font(.headline)
-                    
-                    Spacer()
-                    
-                    Text(segment.formattedDuration)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                
-                HStack {
-                    Text("\(segment.startTime, specifier: "%.1f")s - \(segment.endTime, specifier: "%.1f")s")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    Spacer()
-                    
-                    transcriptionStatusBadge
-                }
+                Text("Segment \(segment.segmentIndex + 1)")
+                    .font(.headline)
                 
                 if let transcription = segment.transcription, !transcription.text.isEmpty {
                     Text(transcription.text)
                         .font(.caption)
                         .foregroundColor(.primary)
-                        .lineLimit(2)
                         .padding(.top, 4)
                 }
             }
@@ -391,8 +277,9 @@ struct SegmentRowView: View {
             }
         }
         .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(8)
+        .background(Color(.systemGray6))
+        .clipShape(.rect(cornerRadius: 8))
+       
     }
     
     private var transcriptionStatusBadge: some View {

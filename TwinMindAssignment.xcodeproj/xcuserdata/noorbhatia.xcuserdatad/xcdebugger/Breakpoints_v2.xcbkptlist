@@ -7,17 +7,17 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "24E70566-55DA-4F51-82CB-140A83DEC325"
-            shouldBeEnabled = "Yes"
+            uuid = "57AAD91F-809F-40C0-87A5-A3411DF51392"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "TwinMindAssignment/UI/Sessions/SessionDetailView.swift"
+            filePath = "TwinMindAssignment/Core/Transcription/TranscriptionService.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "88"
-            endingLineNumber = "88"
-            landmarkName = "sessionHeaderView"
-            landmarkType = "24">
+            startingLineNumber = "242"
+            endingLineNumber = "242"
+            landmarkName = "transcribeWithOpenAI(segment:)"
+            landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

@@ -30,7 +30,8 @@ struct SettingsView: View {
         .alert("OpenAI API Key", isPresented: $showingAPIKeyAlert) {
             TextField("API Key", text: $apiKey)
             Button("Save") {
-                transcriptionService.configureAPI(apiKey: apiKey)
+                _ = KeychainHandler.shared.set(apiKey, forKey: .kOpenAIKey)
+//                transcriptionService.configureAPI(apiKey: apiKey)
             }
             Button("Cancel", role: .cancel) { }
         } message: {

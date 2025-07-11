@@ -6,13 +6,6 @@ import Network
 @MainActor
 final class TranscriptionService: ObservableObject {
     
-    // MARK: - Published Properties
-    @Published var isTranscribing = false
-    @Published var transcriptionProgress: Double = 0.0
-    @Published var activeTranscriptions: Set<UUID> = []
-    @Published var failedTranscriptions: Set<UUID> = []
-    @Published var networkStatus: NWPath.Status = .satisfied
-    
     // MARK: - Configuration
     struct TranscriptionConfig {
         let maxConcurrentTranscriptions: Int
@@ -41,28 +34,21 @@ final class TranscriptionService: ObservableObject {
         )
     }
     
-    // MARK: - API Configuration
-    struct APIConfig {
-        let openaiAPIKey: String
-        let openaiBaseURL: String
-        let model: String
-        let temperature: Double
-        let language: String?
-        
-        static let `default` = APIConfig(
-            openaiAPIKey: "", // To be configured
-            openaiBaseURL: "https://api.openai.com/v1",
-            model: "whisper-1",
-            temperature: 0.0,
-            language: nil // Auto-detect
-        )
+    // MARK: - Response Model
+    struct TranscriptionResponse:Decodable{
+        let text:String
     }
+    
+    // MARK: - Published Properties
+    @Published var isTranscribing = false
+    @Published var transcriptionProgress: Double = 0.0
+    @Published var activeTranscriptions: Set<UUID> = []
+    @Published var failedTranscriptions: Set<UUID> = []
+    @Published var networkStatus: NWPath.Status = .satisfied
     
     // MARK: - Private Properties
     private let modelContext: ModelContext
     private let config: TranscriptionConfig
-    private var apiConfig: APIConfig
-    private let urlSession: URLSession
     private let networkMonitor: NWPathMonitor
     private let transcriptionQueue = DispatchQueue(label: "transcription.queue", qos: .userInitiated)
     
@@ -73,23 +59,19 @@ final class TranscriptionService: ObservableObject {
     
     // Local transcription services
     private lazy var localTranscriptionService = LocalTranscriptionService()
+    private let network:NetworkHandlerProtocol
     
     // MARK: - Initialization
     init(
         modelContext: ModelContext,
         config: TranscriptionConfig = .default,
-        apiConfig: APIConfig = .default
+        apiConfig: APIConfig = .default,
+        network:NetworkHandlerProtocol = NetworkHandler.shared
     ) {
         self.modelContext = modelContext
         self.config = config
-        self.apiConfig = apiConfig
-        
-        // Configure URL session
-        let sessionConfig = URLSessionConfiguration.default
-        sessionConfig.timeoutIntervalForRequest = config.requestTimeout
-        sessionConfig.timeoutIntervalForResource = config.requestTimeout * 2
-        self.urlSession = URLSession(configuration: sessionConfig)
-        
+        self.network = network
+
         // Setup network monitoring
         self.networkMonitor = NWPathMonitor()
         setupNetworkMonitoring()
@@ -105,18 +87,6 @@ final class TranscriptionService: ObservableObject {
     }
     
     // MARK: - Public Methods
-    
-    /// Configures the OpenAI API credentials
-    func configureAPI(apiKey: String, baseURL: String? = nil) {
-        apiConfig = APIConfig(
-            openaiAPIKey: apiKey,
-            openaiBaseURL: baseURL ?? apiConfig.openaiBaseURL,
-            model: apiConfig.model,
-            temperature: apiConfig.temperature,
-            language: apiConfig.language
-        )
-    }
-    
     /// Transcribes all unprocessed segments for a recording session
     func transcribeSession(_ session: Session) async {
         let unprocessedSegments = session.segments.filter { !$0.isProcessed && $0.shouldRetryTranscription }
@@ -209,43 +179,43 @@ final class TranscriptionService: ObservableObject {
         
         var lastError: Error?
         
-        // Try network-based transcription first
-        // if shouldUseNetworkTranscription() {
-        //     for attempt in 0..<config.maxRetryAttempts {
-        //         do {
-        //             let transcription = try await transcribeWithOpenAI(segment: segment)
+//         Try network-based transcription first
+         if shouldUseNetworkTranscription() {
+             for attempt in 0..<config.maxRetryAttempts {
+                 do {
+                     _ = try await transcribeWithOpenAI(segment: segment)
                     
-        //             // Success - reset consecutive failures
-        //             consecutiveFailures = 0
-        //             lastFailureTime = nil
+                     // Success - reset consecutive failures
+                     consecutiveFailures = 0
+                     lastFailureTime = nil
                     
-        //             segment.completeProcessing()
-        //             try modelContext.save()
+                     segment.completeProcessing()
+                     try modelContext.save()
                     
-        //             return
+                     return
                     
-        //         } catch {
-        //             lastError = error
+                 } catch {
+                     lastError = error
                     
-        //             // Record failure
-        //             segment.recordFailure(reason: error.localizedDescription)
+                     // Record failure
+                     segment.recordFailure(reason: error.localizedDescription)
                     
-        //             // Check if we should retry
-        //             if attempt < config.maxRetryAttempts - 1 {
-        //                 let delay = calculateRetryDelay(attempt: attempt)
-        //                 try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-        //             }
-        //         }
-        //     }
+                     // Check if we should retry
+                     if attempt < config.maxRetryAttempts - 1 {
+                         let delay = calculateRetryDelay(attempt: attempt)
+                         try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                     }
+                 }
+             }
             
-        //     // Network transcription failed - increment consecutive failures
-        //     consecutiveFailures += 1
-        //     lastFailureTime = Date()
-        // }
+             // Network transcription failed - increment consecutive failures
+             consecutiveFailures += 1
+             lastFailureTime = Date()
+         }
         
         // Fallback to local transcription
         do {
-            let transcription = try await transcribeLocally(segment: segment)
+            _ = try await transcribeLocally(segment: segment)
             segment.completeProcessing()
             try modelContext.save()
             
@@ -266,56 +236,25 @@ final class TranscriptionService: ObservableObject {
             throw TranscriptionError.invalidAudioFile
         }
         
-        guard !apiConfig.openaiAPIKey.isEmpty else {
-            throw TranscriptionError.apiKeyNotConfigured
-        }
+        let endpoint = Endpoint(path:  "/audio/transcriptions", method: .POST, queryItems: nil)
         
-        // Prepare multipart form data
-        let boundary = "Boundary-\(UUID().uuidString)"
-        let httpBody = try createMultipartBody(
-            fileURL: fileURL,
-            boundary: boundary,
-            config: apiConfig
-        )
-        
-        // Create request
-        var request = URLRequest(url: URL(string: "\(apiConfig.openaiBaseURL)/audio/transcriptions")!)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(apiConfig.openaiAPIKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        request.httpBody = httpBody
-        
-        // Perform request
-        let (data, response) = try await urlSession.data(for: request)
-        
-        // Check response
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw TranscriptionError.invalidResponse
-        }
-        
-        guard 200...299 ~= httpResponse.statusCode else {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw TranscriptionError.apiError(httpResponse.statusCode, errorMessage)
-        }
-        
-        // Parse response
-        let openAIResponse = try JSONDecoder().decode(OpenAITranscriptionResponse.self, from: data)
-        
+        let response: TranscriptionResponse = try await network.uploadMultipartFile(fileURL: fileURL, endpoint:endpoint, config: APIConfig.default)
+       
         // Create transcription model
         let transcription = Transcription(
-            text: openAIResponse.text,
+            text: response.text,
             confidence: 0.95, // OpenAI doesn't provide confidence scores
-            language: openAIResponse.language,
+            language: "",
             processingMethod: .openaiWhisper,
             apiProvider: "OpenAI",
-            modelUsed: apiConfig.model,
+            modelUsed: "",
             processingDuration: Date().timeIntervalSince(segment.processingStartTime ?? Date()),
             audioSegment: segment
         )
         
         transcription.complete(
             confidence: 0.95,
-            language: openAIResponse.language
+            language: ""
         )
         
         modelContext.insert(transcription)
@@ -333,52 +272,7 @@ final class TranscriptionService: ObservableObject {
         return transcription
     }
     
-    private func createMultipartBody(
-        fileURL: URL,
-        boundary: String,
-        config: APIConfig
-    ) throws -> Data {
-        var body = Data()
-        let audioData = try Data(contentsOf: fileURL)
-        
-        // Add file data
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"audio.wav\"\r\n".data(using: .utf8)!)
-        body.append("Content-Type: audio/wav\r\n\r\n".data(using: .utf8)!)
-        body.append(audioData)
-        body.append("\r\n".data(using: .utf8)!)
-        
-        // Add model parameter
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n".data(using: .utf8)!)
-        body.append(config.model.data(using: .utf8)!)
-        body.append("\r\n".data(using: .utf8)!)
-        
-        // Add temperature parameter
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"temperature\"\r\n\r\n".data(using: .utf8)!)
-        body.append("\(config.temperature)".data(using: .utf8)!)
-        body.append("\r\n".data(using: .utf8)!)
-        
-        // Add language parameter if specified
-        if let language = config.language {
-            body.append("--\(boundary)\r\n".data(using: .utf8)!)
-            body.append("Content-Disposition: form-data; name=\"language\"\r\n\r\n".data(using: .utf8)!)
-            body.append(language.data(using: .utf8)!)
-            body.append("\r\n".data(using: .utf8)!)
-        }
-        
-        // Add response format
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"response_format\"\r\n\r\n".data(using: .utf8)!)
-        body.append("verbose_json".data(using: .utf8)!)
-        body.append("\r\n".data(using: .utf8)!)
-        
-        // Close boundary
-        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
-        
-        return body
-    }
+   
     
     private func shouldUseNetworkTranscription() -> Bool {
         // Don't use network if no connectivity
@@ -445,30 +339,30 @@ enum TranscriptionError: LocalizedError {
     }
 }
 
-struct OpenAITranscriptionResponse: Codable {
-    let text: String
-    let language: String?
-    let duration: Double?
-    let segments: [TranscriptionSegment]?
-    
-    struct TranscriptionSegment: Codable {
-        let id: Int
-        let start: Double
-        let end: Double
-        let text: String
-        let temperature: Double?
-        let avgLogprob: Double?
-        let compressionRatio: Double?
-        let noSpeechProb: Double?
-        
-        private enum CodingKeys: String, CodingKey {
-            case id, start, end, text, temperature
-            case avgLogprob = "avg_logprob"
-            case compressionRatio = "compression_ratio"
-            case noSpeechProb = "no_speech_prob"
-        }
-    }
-}
+//struct OpenAITranscriptionResponse: Codable {
+//    let text: String
+//    let language: String?
+//    let duration: Double?
+//    let segments: [TranscriptionSegment]?
+//    
+//    struct TranscriptionSegment: Codable {
+//        let id: Int
+//        let start: Double
+//        let end: Double
+//        let text: String
+//        let temperature: Double?
+//        let avgLogprob: Double?
+//        let compressionRatio: Double?
+//        let noSpeechProb: Double?
+//        
+//        private enum CodingKeys: String, CodingKey {
+//            case id, start, end, text, temperature
+//            case avgLogprob = "avg_logprob"
+//            case compressionRatio = "compression_ratio"
+//            case noSpeechProb = "no_speech_prob"
+//        }
+//    }
+//}
 
 // MARK: - Async Semaphore
 
