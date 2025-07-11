@@ -38,6 +38,7 @@ final class AudioSegmentationService: ObservableObject {
     private let modelContext: ModelContext
     private let fileManager = FileManager.default
     private var segmentationTask: Task<Void, Error>?
+    private let errorManager: ErrorManager?
     
     // File paths
     private lazy var segmentsDirectory: URL = {
@@ -51,8 +52,9 @@ final class AudioSegmentationService: ObservableObject {
     }()
     
     // MARK: - Initialization
-    init(modelContext: ModelContext) {
+    init(modelContext: ModelContext, errorManager: ErrorManager? = nil) {
         self.modelContext = modelContext
+        self.errorManager = errorManager
     }
     
     deinit {
@@ -68,16 +70,19 @@ final class AudioSegmentationService: ObservableObject {
     ) async throws {
         
         guard let fileURL = session.fileURL else {
-            throw SegmentationError.invalidSourceFile
+            reportError(.storage(.fileNotFound), operation: "segmentRecording")
+            throw NSError(domain: "SegmentationError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid source file"])
         }
         
         guard !isSegmenting else {
-            throw SegmentationError.segmentationInProgress
+            reportError(.system(.cpuThrottling), operation: "segmentRecording")
+            throw NSError(domain: "SegmentationError", code: 2, userInfo: [NSLocalizedDescriptionKey: "Segmentation already in progress"])
         }
         
         // Validate source file exists
         guard fileManager.fileExists(atPath: fileURL.path) else {
-            throw SegmentationError.sourceFileNotFound
+            reportError(.storage(.fileNotFound), operation: "segmentRecording")
+            throw NSError(domain: "SegmentationError", code: 3, userInfo: [NSLocalizedDescriptionKey: "Source file not found"])
         }
         
         isSegmenting = true
@@ -148,6 +153,7 @@ final class AudioSegmentationService: ObservableObject {
         } catch {
             // Clean up any partial segments on error
             await cleanupPartialSegments(sessionId: session.id)
+            reportError(.storage(.diskWriteError), operation: "segmentRecording")
             throw error
         }
     }
@@ -166,7 +172,11 @@ final class AudioSegmentationService: ObservableObject {
             modelContext.delete(segment)
         }
         
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            reportError(.data(.saveOperationFailed), operation: "cleanupSegments")
+        }
     }
     
     /// Gets the total size of all segment files for a session
@@ -177,6 +187,17 @@ final class AudioSegmentationService: ObservableObject {
     }
     
     // MARK: - Private Methods
+    
+    private func reportError(_ error: ErrorManager.AppError, operation: String) {
+        guard let errorManager = errorManager else { return }
+        
+        let context = ErrorManager.ErrorContext(
+            component: "AudioSegmentationService",
+            operation: operation,
+            userAction: "User attempted audio segmentation"
+        )
+        errorManager.reportError(error, context: context)
+    }
     
     private func calculateSegments(
         totalDuration: TimeInterval,
@@ -204,12 +225,12 @@ final class AudioSegmentationService: ObservableObject {
             )
             segments.append(segment)
             
-            // Move to next segment with overlap consideration
-            if segmentEndTime >= totalDuration {
+            // Move to next segment (subtract overlap for continuity)
+            if segmentEndTime < totalDuration {
+                currentTime = segmentEndTime - config.overlapDuration
+            } else {
                 break
             }
-            
-            currentTime = segmentEndTime - config.overlapDuration
         }
         
         return segments
@@ -226,11 +247,13 @@ final class AudioSegmentationService: ObservableObject {
         // Calculate frame positions
         let sampleRate = sourceFile.fileFormat.sampleRate
         let startFrame = AVAudioFramePosition(segmentInfo.startTime * sampleRate)
-        let frameCount = AVAudioFrameCount((segmentInfo.endTime - segmentInfo.startTime) * sampleRate)
+        let endFrame = AVAudioFramePosition(segmentInfo.endTime * sampleRate)
+        let frameCount = AVAudioFrameCount(endFrame - startFrame)
         
         // Create output file URL
-        let fileName = "segment_\(sessionId.uuidString)_\(String(format: "%03d", segmentIndex)).wav"
-        let outputURL = segmentsDirectory.appendingPathComponent(fileName)
+        let outputURL = segmentsDirectory.appendingPathComponent(
+            "segment_\(sessionId.uuidString)_\(segmentIndex).wav"
+        )
         
         // Create output audio file
         let outputFile = try AVAudioFile(
@@ -252,7 +275,8 @@ final class AudioSegmentationService: ObservableObject {
                 pcmFormat: sourceFile.processingFormat,
                 frameCapacity: framesToRead
             ) else {
-                throw SegmentationError.bufferCreationFailed
+                reportError(.storage(.fileCorrupted), operation: "createSegmentFile")
+                throw NSError(domain: "SegmentationError", code: 4, userInfo: [NSLocalizedDescriptionKey: "Buffer creation failed"])
             }
             
             // Read from source
@@ -264,7 +288,8 @@ final class AudioSegmentationService: ObservableObject {
                     buffer,
                     to: config.audioFormat
                 ) else {
-                    throw SegmentationError.formatConversionFailed
+                    reportError(.storage(.fileCorrupted), operation: "createSegmentFile")
+                    throw NSError(domain: "SegmentationError", code: 5, userInfo: [NSLocalizedDescriptionKey: "Format conversion failed"])
                 }
                 
                 try outputFile.write(from: convertedBuffer)
@@ -332,6 +357,7 @@ final class AudioSegmentationService: ObservableObject {
             }
         } catch {
             print("Failed to cleanup partial segments: \(error)")
+            reportError(.storage(.fileCleanupFailed), operation: "cleanupPartialSegments")
         }
     }
 }
@@ -344,35 +370,6 @@ struct SegmentInfo {
     
     var duration: TimeInterval {
         endTime - startTime
-    }
-}
-
-enum SegmentationError: LocalizedError {
-    case invalidSourceFile
-    case sourceFileNotFound
-    case segmentationInProgress
-    case bufferCreationFailed
-    case formatConversionFailed
-    case fileWriteError
-    case insufficientSpace
-    
-    var errorDescription: String? {
-        switch self {
-        case .invalidSourceFile:
-            return "The source audio file is invalid or corrupted"
-        case .sourceFileNotFound:
-            return "The source audio file could not be found"
-        case .segmentationInProgress:
-            return "Audio segmentation is already in progress"
-        case .bufferCreationFailed:
-            return "Failed to create audio buffer for processing"
-        case .formatConversionFailed:
-            return "Failed to convert audio format"
-        case .fileWriteError:
-            return "Failed to write segment file to disk"
-        case .insufficientSpace:
-            return "Insufficient storage space for audio segments"
-        }
     }
 }
 
@@ -410,13 +407,15 @@ extension AudioSegmentationService {
         config: SegmentationConfig = .defaultConfig
     ) throws {
         guard let sourceURL = session.fileURL else {
-            throw SegmentationError.invalidSourceFile
+            reportError(.storage(.fileNotFound), operation: "validateStorageSpace")
+            throw NSError(domain: "SegmentationError", code: 6, userInfo: [NSLocalizedDescriptionKey: "Invalid source file"])
         }
         
         // Get available space
         guard let attributes = try? fileManager.attributesOfFileSystem(forPath: segmentsDirectory.path),
               let freeSpace = attributes[.systemFreeSize] as? NSNumber else {
-            throw SegmentationError.insufficientSpace
+            reportError(.storage(.insufficientSpace), operation: "validateStorageSpace")
+            throw NSError(domain: "SegmentationError", code: 7, userInfo: [NSLocalizedDescriptionKey: "Insufficient storage space"])
         }
         
         // Estimate required space (with 50% buffer)
@@ -428,7 +427,8 @@ extension AudioSegmentationService {
         let requiredSpace = estimatedSize + (estimatedSize / 2)
         
         if freeSpace.int64Value < requiredSpace {
-            throw SegmentationError.insufficientSpace
+            reportError(.storage(.insufficientSpace), operation: "validateStorageSpace")
+            throw NSError(domain: "SegmentationError", code: 8, userInfo: [NSLocalizedDescriptionKey: "Insufficient storage space"])
         }
     }
 } 

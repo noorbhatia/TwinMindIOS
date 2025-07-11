@@ -7,24 +7,16 @@
 
 import Foundation
 
-enum HTTPMethod:String {
+enum HTTPMethod: String {
     case GET, POST
 }
 
-
-enum APIError: Error {
-    case invalidURL
-    case decodingFailed(error:Error)
-    case requestFailed
-    case unknown(error: Error)
-}
-
-struct Endpoint{
-    let path:String
-    let method:HTTPMethod
+struct Endpoint {
+    let path: String
+    let method: HTTPMethod
     let queryItems: [URLQueryItem]?
     
-    func url(baseUrl:String) -> URL?{
+    func url(baseUrl: String) -> URL? {
         var components = URLComponents(string: baseUrl + path)
         components?.queryItems = queryItems
         return components?.url
@@ -47,20 +39,20 @@ struct APIConfig {
         language: nil // Auto-detect
     )
 }
+
 protocol NetworkHandlerProtocol {
-    func fetch<T:Decodable>(_ endpoint:Endpoint, baseURL:String) async throws -> T
-    func uploadMultipartFile<T:Decodable>(fileURL:URL, endpoint:Endpoint, config:APIConfig) async throws -> T
+    func fetch<T: Decodable>(_ endpoint: Endpoint, baseURL: String) async throws -> T
+    func uploadMultipartFile<T: Decodable>(fileURL: URL, endpoint: Endpoint, config: APIConfig) async throws -> T
 }
 
-final class NetworkHandler : NetworkHandlerProtocol{
-    
+final class NetworkHandler: NetworkHandlerProtocol {
     
     static let shared = NetworkHandler()
-    private init (){}
+    private init() {}
     
-    func fetch<T:Decodable>(_ endpoint:Endpoint, baseURL:String) async throws -> T{
-        guard let url = endpoint.url(baseUrl: baseURL) else{
-            throw APIError.invalidURL
+    func fetch<T: Decodable>(_ endpoint: Endpoint, baseURL: String) async throws -> T {
+        guard let url = endpoint.url(baseUrl: baseURL) else {
+            throw NSError(domain: "NetworkError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])
         }
         
         var request = URLRequest(url: url)
@@ -68,18 +60,18 @@ final class NetworkHandler : NetworkHandlerProtocol{
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
-        guard let httpResponse = response as? HTTPURLResponse , 200..<300 ~= httpResponse.statusCode else {
-            throw APIError.requestFailed
+        guard let httpResponse = response as? HTTPURLResponse, 200..<300 ~= httpResponse.statusCode else {
+            throw NSError(domain: "NetworkError", code: 2, userInfo: [NSLocalizedDescriptionKey: "Request failed"])
         }
         
         do {
             return try JSONDecoder().decode(T.self, from: data)
-        }catch{
-            throw APIError.decodingFailed(error: error)
+        } catch {
+            throw NSError(domain: "NetworkError", code: 3, userInfo: [NSLocalizedDescriptionKey: "Decoding failed: \(error.localizedDescription)"])
         }
     }
     
-    func uploadMultipartFile<T:Decodable>(fileURL:URL, endpoint:Endpoint, config:APIConfig) async throws -> T{
+    func uploadMultipartFile<T: Decodable>(fileURL: URL, endpoint: Endpoint, config: APIConfig) async throws -> T {
         // Prepare multipart form data
         let boundary = "Boundary-\(UUID().uuidString)"
         let httpBody = try? createMultipartBody(
@@ -87,13 +79,15 @@ final class NetworkHandler : NetworkHandlerProtocol{
             boundary: boundary,
             config: config
         )
-        guard let url = endpoint.url(baseUrl: config.openaiBaseURL) else{
-            throw APIError.invalidURL
+        
+        guard let url = endpoint.url(baseUrl: config.openaiBaseURL) else {
+            throw NSError(domain: "NetworkError", code: 4, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])
         }
         
-        guard let key = KeychainHandler.shared.get(.kOpenAIKey)else {
-            throw TranscriptionError.apiKeyNotConfigured
+        guard let key = KeychainHandler.shared.get(.kOpenAIKey) else {
+            throw NSError(domain: "NetworkError", code: 5, userInfo: [NSLocalizedDescriptionKey: "API key not configured"])
         }
+        
         // Create request
         var request = URLRequest(url: url)
         request.httpMethod = endpoint.method.rawValue
@@ -101,30 +95,32 @@ final class NetworkHandler : NetworkHandlerProtocol{
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         request.httpBody = httpBody
         
-        do{
+        do {
             // Perform request
             let (data, response) = try await URLSession.shared.data(for: request)
             
             // Check response
             guard let httpResponse = response as? HTTPURLResponse else {
-                throw TranscriptionError.invalidResponse
+                throw NSError(domain: "NetworkError", code: 6, userInfo: [NSLocalizedDescriptionKey: "Invalid response"])
             }
             
             guard 200...299 ~= httpResponse.statusCode else {
                 let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-                throw TranscriptionError.apiError(httpResponse.statusCode, errorMessage)
+                throw NSError(domain: "NetworkError", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "API error (\(httpResponse.statusCode)): \(errorMessage)"])
             }
             
             // Parse response
             return try JSONDecoder().decode(T.self, from: data)
-        }catch {
-            throw APIError.unknown(error: error)
+        } catch {
+            if let nsError = error as? NSError, nsError.domain == "NetworkError" {
+                throw error // Re-throw our custom errors
+            }
+            throw NSError(domain: "NetworkError", code: 7, userInfo: [NSLocalizedDescriptionKey: "Unknown error: \(error.localizedDescription)"])
         }
-        
     }
 }
 
-extension NetworkHandler{
+extension NetworkHandler {
     private func createMultipartBody(
         fileURL: URL,
         boundary: String,
@@ -145,20 +141,6 @@ extension NetworkHandler{
         body.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n".data(using: .utf8)!)
         body.append(config.model.data(using: .utf8)!)
         body.append("\r\n".data(using: .utf8)!)
-        
-//        // Add temperature parameter
-//        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-//        body.append("Content-Disposition: form-data; name=\"temperature\"\r\n\r\n".data(using: .utf8)!)
-//        body.append("\(config.temperature)".data(using: .utf8)!)
-//        body.append("\r\n".data(using: .utf8)!)
-//        
-//        // Add language parameter if specified
-//        if let language = config.language {
-//            body.append("--\(boundary)\r\n".data(using: .utf8)!)
-//            body.append("Content-Disposition: form-data; name=\"language\"\r\n\r\n".data(using: .utf8)!)
-//            body.append(language.data(using: .utf8)!)
-//            body.append("\r\n".data(using: .utf8)!)
-//        }
         
         // Add response format
         body.append("--\(boundary)\r\n".data(using: .utf8)!)

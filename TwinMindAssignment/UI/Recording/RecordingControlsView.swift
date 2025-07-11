@@ -35,31 +35,31 @@ struct RecordingControlsView: View {
             secondaryControls
         }
         .padding(.horizontal, 20)
-        .alert("Microphone Permission Required", isPresented: $showingPermissionAlert) {
-            Button("Settings") {
-                openAppSettings()
-            }
-            Button("Cancel", role: .cancel) { }
-        } message: {
-            Text("This app needs microphone access to record audio. Please enable it in Settings.")
-        }
-        .alert("Recording Error", isPresented: $audioManager.showingErrorAlert) {
-            Button("OK") {
-                audioManager.clearError()
-            }
-            if audioManager.lastError == .permissionDenied {
-                Button("Settings") {
-                    openAppSettings()
-                }
-            }
-        } message: {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(audioManager.getErrorMessage())
-                Text(audioManager.getSuggestedAction())
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-        }
+//        .alert("Microphone Permission Required", isPresented: $showingPermissionAlert) {
+//            Button("Settings") {
+//                openAppSettings()
+//            }
+//            Button("Cancel", role: .cancel) { }
+//        } message: {
+//            Text("This app needs microphone access to record audio. Please enable it in Settings.")
+//        }
+//        .alert("Recording Error", isPresented: $audioManager.showingErrorAlert) {
+//            Button("OK") {
+//                audioManager.clearError()
+//            }
+//            if audioManager.lastError == .permissionDenied {
+//                Button("Settings") {
+//                    openAppSettings()
+//                }
+//            }
+//        } message: {
+//            VStack(alignment: .leading, spacing: 8) {
+//                Text(audioManager.getErrorMessage())
+//                Text(audioManager.getSuggestedAction())
+//                    .font(.caption)
+//                    .foregroundColor(.secondary)
+//            }
+//        }
         .sheet(isPresented: $showingSettingsSheet) {
             RecordingSettingsView(audioManager: audioManager)
         }
@@ -187,7 +187,6 @@ struct RecordingControlsView: View {
                     .font(.system(size: 60))
                     .foregroundColor(mainButtonColor)
             }
-            .disabled(!audioManager.isPermissionGranted && !audioManager.isRecording)
             .buttonStyle(ScaleButtonStyle())
             
             // Stop Button
@@ -221,7 +220,7 @@ struct RecordingControlsView: View {
             Spacer()
             
             // Permission Status
-            if !audioManager.isPermissionGranted {
+            if !audioManager.isMicPermissionGranted {
                 Button(action: requestPermission) {
                     HStack(spacing: 6) {
                         Image(systemName: "mic.slash")
@@ -285,11 +284,11 @@ extension RecordingControlsView{
     
     private var mainButtonColor: Color {
         if !audioManager.isRecording {
-            return audioManager.isPermissionGranted ? .red : .gray
+            return .gray
         } else if audioManager.isPaused {
             return .green
         } else {
-            return .orange
+            return .red
         }
     }
     

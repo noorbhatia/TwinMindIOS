@@ -9,10 +9,12 @@ final class LocalTranscriptionService: ObservableObject {
     // MARK: - Properties
     private let speechRecognizer: SFSpeechRecognizer?
     private var isAvailable = false
+    private let errorManager: ErrorManager?
     
     // MARK: - Initialization
-    init(locale: Locale = Locale.current) {
+    init(locale: Locale = Locale.current, errorManager: ErrorManager? = nil) {
         self.speechRecognizer = SFSpeechRecognizer(locale: locale)
+        self.errorManager = errorManager
         checkAvailability()
     }
     
@@ -21,21 +23,25 @@ final class LocalTranscriptionService: ObservableObject {
     /// Transcribes an audio segment using Apple's Speech framework
     func transcribe(segment: AudioSegment) async throws -> Transcription {
         guard isAvailable else {
-            throw LocalTranscriptionError.speechRecognitionNotAvailable
+            reportError(.transcription(.localTranscriptionUnavailable), operation: "transcribe")
+            throw NSError(domain: "LocalTranscriptionError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Speech recognition not available"])
         }
         
         guard let speechRecognizer = speechRecognizer else {
-            throw LocalTranscriptionError.speechRecognizerNotInitialized
+            reportError(.transcription(.localTranscriptionUnavailable), operation: "transcribe")
+            throw NSError(domain: "LocalTranscriptionError", code: 2, userInfo: [NSLocalizedDescriptionKey: "Speech recognizer not initialized"])
         }
         
         guard let audioURL = segment.fileURL else {
-            throw LocalTranscriptionError.invalidAudioFile
+            reportError(.transcription(.audioFileInvalid), operation: "transcribe")
+            throw NSError(domain: "LocalTranscriptionError", code: 3, userInfo: [NSLocalizedDescriptionKey: "Invalid audio file"])
         }
         
         // Check permissions
         let authStatus = await requestSpeechRecognitionPermission()
         guard authStatus == .authorized else {
-            throw LocalTranscriptionError.permissionDenied
+            reportError(.transcription(.speechRecognitionPermissionDenied), operation: "transcribe")
+            throw NSError(domain: "LocalTranscriptionError", code: 4, userInfo: [NSLocalizedDescriptionKey: "Speech recognition permission denied"])
         }
         
         // Create speech recognition request
@@ -52,9 +58,10 @@ final class LocalTranscriptionService: ObservableObject {
         
         // Perform recognition
         return try await withCheckedThrowingContinuation { continuation in
-            speechRecognizer.recognitionTask(with: request) { result, error in
+            speechRecognizer.recognitionTask(with: request) { [weak self] result, error in
                 if let error = error {
-                    continuation.resume(throwing: LocalTranscriptionError.recognitionFailed(error.localizedDescription))
+                    self?.reportError(.transcription(.transcriptionFailed), operation: "transcribe")
+                    continuation.resume(throwing: NSError(domain: "LocalTranscriptionError", code: 5, userInfo: [NSLocalizedDescriptionKey: "Recognition failed: \(error.localizedDescription)"]))
                     return
                 }
 
@@ -119,32 +126,20 @@ final class LocalTranscriptionService: ObservableObject {
     
     /// Creates a transcription service for a specific locale
     func createServiceForLocale(_ locale: Locale) -> LocalTranscriptionService {
-        return LocalTranscriptionService(locale: locale)
+        return LocalTranscriptionService(locale: locale, errorManager: errorManager)
     }
-}
-
-// MARK: - Error Types
-
-enum LocalTranscriptionError: LocalizedError {
-    case speechRecognitionNotAvailable
-    case speechRecognizerNotInitialized
-    case invalidAudioFile
-    case permissionDenied
-    case recognitionFailed(String)
     
-    var errorDescription: String? {
-        switch self {
-        case .speechRecognitionNotAvailable:
-            return "Speech recognition is not available on this device"
-        case .speechRecognizerNotInitialized:
-            return "Speech recognizer could not be initialized"
-        case .invalidAudioFile:
-            return "Invalid audio file for local transcription"
-        case .permissionDenied:
-            return "Speech recognition permission denied"
-        case .recognitionFailed(let message):
-            return "Speech recognition failed: \(message)"
-        }
+    // MARK: - Private Methods
+    
+    private func reportError(_ error: ErrorManager.AppError, operation: String) {
+        guard let errorManager = errorManager else { return }
+        
+        let context = ErrorManager.ErrorContext(
+            component: "LocalTranscriptionService",
+            operation: operation,
+            userAction: "User attempted local transcription"
+        )
+        errorManager.reportError(error, context: context)
     }
 }
 

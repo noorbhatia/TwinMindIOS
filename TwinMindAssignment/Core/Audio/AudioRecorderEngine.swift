@@ -4,33 +4,6 @@ import Combine
 import Accelerate
 import SwiftData
 
-
-enum AudioRecordingError: LocalizedError , Equatable{
-    case audioSessionNotConfigured
-    case audioEngineFailure(String)
-    case fileCreationFailure
-    case insufficientStorage
-    case permissionDenied
-    case interruptionFailure
-    
-    var errorDescription: String? {
-        switch self {
-        case .audioSessionNotConfigured:
-            return "Audio session is not properly configured"
-        case .audioEngineFailure(let message):
-            return "Audio engine error: \(message)"
-        case .fileCreationFailure:
-            return "Failed to create audio file"
-        case .insufficientStorage:
-            return "Insufficient storage space"
-        case .permissionDenied:
-            return "Microphone permission denied"
-        case .interruptionFailure:
-            return "Failed to handle audio interruption"
-        }
-    }
-}
-
 enum AudioFileFormat {
     case wav
     case m4a
@@ -54,11 +27,11 @@ enum AudioFileFormat {
 }
 
 // MARK: - Types
-enum RecordingState:Equatable {
+enum RecordingState: Equatable {
     case stopped
     case recording
     case paused
-    case error(AudioRecordingError)
+    case error(String)
     
     static func == (lhs: RecordingState, rhs: RecordingState) -> Bool {
         switch (lhs, rhs) {
@@ -74,7 +47,6 @@ enum RecordingState:Equatable {
         }
     }
 }
-
 
 // MARK: - Audio Configuration
 struct AudioConfiguration {
@@ -104,6 +76,7 @@ struct AudioConfiguration {
         fileFormat: .wav
     )
 }
+
 // MARK: - FFT Configuration Constants
 private enum FFTConstants {
     /// Amount of frequency bins to keep after performing the FFT
@@ -119,7 +92,6 @@ private enum FFTConstants {
 /// Core audio recording engine using AVAudioEngine for high-quality recording
 @MainActor
 final class AudioRecorderEngine: ObservableObject {
-    
     
     // MARK: - Published Properties
     @Published var isRecording = false
@@ -145,6 +117,7 @@ final class AudioRecorderEngine: ObservableObject {
     
     private let transcriptionService: TranscriptionService
     private let modelContext: ModelContext
+    private let errorManager: ErrorManager
     
     // Current session tracking
     private var currentSession: Session?
@@ -159,16 +132,17 @@ final class AudioRecorderEngine: ObservableObject {
     // Cancellables for Combine
     private var cancellables = Set<AnyCancellable>()
     
-    
     // MARK: - Initialization
     init(
         audioSession: AudioSessionManager,
         transcriptionService: TranscriptionService,
-        modelContext: ModelContext
+        modelContext: ModelContext,
+        errorManager: ErrorManager
     ) {
         self.audioSession = audioSession
         self.transcriptionService = transcriptionService
         self.modelContext = modelContext
+        self.errorManager = errorManager
         
         setupAudioEngineObservers()
         setupNotificationObservers()
@@ -180,19 +154,18 @@ final class AudioRecorderEngine: ObservableObject {
     
     // MARK: - Public Methods
     
-    
-    
     /// Configures audio recording settings
     func configureAudio(with configuration: AudioConfiguration) {
         audioConfiguration = configuration
     }
     
     /// Starts audio recording
-    func startRecording()  throws {
+    func startRecording() throws {
         // Check permissions
         guard audioSession.isRecordPermissionGranted else {
-            recordingState = .error(.permissionDenied)
-            throw AudioRecordingError.permissionDenied
+            recordingState = .error("Microphone permission denied")
+            reportError(.permission(.microphoneAccessDenied), operation: "startRecording")
+            return
         }
         
         // Configure audio session if needed
@@ -201,23 +174,44 @@ final class AudioRecorderEngine: ObservableObject {
                 try audioSession.configureAudioSession()
                 try audioSession.activateSession()
             } catch {
-                recordingState = .error(.audioSessionNotConfigured)
-                throw AudioRecordingError.audioSessionNotConfigured
+                recordingState = .error("Audio session configuration failed")
+                reportError(.audio(.audioSessionConfigurationFailed), operation: "startRecording")
+                return
             }
         }
         
         // Check storage space
-        try checkStorageSpace()
+        do {
+            try checkStorageSpace()
+        } catch {
+            recordingState = .error("Insufficient storage space")
+            reportError(.storage(.insufficientSpace), operation: "startRecording")
+            return
+        }
         
         // Create new session
         createNewSession()
         
         // Setup audio engine
-        try setupAudioEngine()
+        do {
+            try setupAudioEngine()
+        } catch {
+            recordingState = .error("Audio engine setup failed")
+            reportError(.audio(.audioEngineFailure), operation: "startRecording")
+            return
+        }
         
         // Create recording file
-        try createRecordingFile()
+        do {
+            try createRecordingFile()
+        } catch {
+            recordingState = .error("Failed to create recording file")
+            reportError(.storage(.fileNotFound), operation: "startRecording")
+            return
+        }
+        
         scheduleSegmentTimer()
+        
         // Start recording
         do {
             try audioEngine.start()
@@ -232,8 +226,8 @@ final class AudioRecorderEngine: ObservableObject {
             startAudioLevelMonitoring()
             
         } catch {
-            recordingState = .error(.audioEngineFailure(error.localizedDescription))
-            throw AudioRecordingError.audioEngineFailure(error.localizedDescription)
+            recordingState = .error("Failed to start audio engine")
+            reportError(.audio(.recordingStartFailed), operation: "startRecording")
         }
     }
     
@@ -268,8 +262,9 @@ final class AudioRecorderEngine: ObservableObject {
             startRecordingTimer()
             
         } catch {
-            recordingState = .error(.audioEngineFailure(error.localizedDescription))
-            throw AudioRecordingError.audioEngineFailure(error.localizedDescription)
+            recordingState = .error("Failed to resume recording")
+            reportError(.audio(.recordingInterrupted), operation: "resumeRecording")
+            throw error
         }
     }
     
@@ -326,6 +321,15 @@ final class AudioRecorderEngine: ObservableObject {
     
     // MARK: - Private Methods
     
+    private func reportError(_ error: ErrorManager.AppError, operation: String) {
+        let context = ErrorManager.ErrorContext(
+            component: "AudioRecorderEngine",
+            operation: operation,
+            userAction: "User attempted recording operation"
+        )
+        errorManager.reportError(error, context: context)
+    }
+    
     /// rotate segment after timer
     private func rotateAudioSegment() {
         guard isRecording, let oldURL = currentRecordingURL else { return }
@@ -372,6 +376,7 @@ final class AudioRecorderEngine: ObservableObject {
             
         } catch {
             print("Failed to handle finished segment: \(error)")
+            reportError(.storage(.fileNotFound), operation: "handleFinishedSegment")
         }
     }
     
@@ -449,7 +454,8 @@ final class AudioRecorderEngine: ObservableObject {
             audioFile = try AVAudioFile(forWriting: fileURL, settings: settings)
             currentRecordingURL = fileURL
         } catch {
-            throw AudioRecordingError.fileCreationFailure
+            reportError(.storage(.fileNotFound), operation: "createRecordingFile")
+            throw error
         }
     }
     
@@ -463,11 +469,8 @@ final class AudioRecorderEngine: ObservableObject {
             calculateAudioLevel(from: buffer)
         } catch {
             print("Failed to write audio buffer: \(error)")
+            reportError(.storage(.diskWriteError), operation: "processAudioBuffer")
         }
-        
-        
-        
-        
     }
     
     private func calculateAudioLevel(from buffer: AVAudioPCMBuffer) {
@@ -485,23 +488,15 @@ final class AudioRecorderEngine: ObservableObject {
             sum += channelData[i] * channelData[i]
         }
         let rms = sqrt(sum / Float(frameCount))
-                
-                
         let db: Float = rms > 0 ? 20 * log10(rms) : -80
-
         
         self.audioLevel = db
         self.extractWaveformSamples(db)
-        
-        
     }
     
     private func extractWaveformSamples(_ db: Float) {
-        
-        
         // Normalize for UI display (adjust multiplier as needed)
         let normalized = max(0, min(1, (db + 80) / 80))
-
         
         // Add to waveform samples
         audioSamples.append(normalized)
@@ -511,70 +506,6 @@ final class AudioRecorderEngine: ObservableObject {
             audioSamples.removeFirst(audioSamples.count - 10)
         }
     }
-    
-//    /// Performs FFT analysis on audio data to extract frequency magnitudes
-//    private func performFFTAnalysis(data: UnsafeMutablePointer<Float>, frameLength: Int) {
-//        guard let fftSetup = fftSetup else { return }
-//        
-//        // Ensure we have enough data for FFT
-//        let dataCount = min(frameLength, FFTConstants.bufferSize)
-//        guard dataCount > 0 else { return }
-//        
-//        // Copy data to real parts array, pad with zeros if necessary
-//        realParts.withUnsafeMutableBufferPointer { realBuffer in
-//            // Clear the buffer first
-//            realBuffer.baseAddress?.initialize(repeating: 0, count: FFTConstants.bufferSize)
-//            // Copy available data
-//            memcpy(realBuffer.baseAddress, data, dataCount * MemoryLayout<Float>.size)
-//        }
-//        
-//        // Clear imaginary parts
-//        imaginaryParts.withUnsafeMutableBufferPointer { imagBuffer in
-//            imagBuffer.baseAddress?.initialize(repeating: 0, count: FFTConstants.bufferSize)
-//        }
-//        
-//        // Create split complex structure for FFT
-//        var splitComplex = DSPSplitComplex(
-//            realp: &realParts,
-//            imagp: &imaginaryParts
-//        )
-//        
-//        // Perform FFT
-//        vDSP_fft_zrip(fftSetup, &splitComplex, 1, log2n, FFTDirection(FFT_FORWARD))
-//        
-//        // Calculate magnitudes
-//        vDSP_zvmags(&splitComplex, 1, &magnitudes, 1, vDSP_Length(FFTConstants.bufferSize / 2))
-//        
-//        // Process magnitudes for visualization
-//        processMagnitudesForVisualization()
-//    }
-    
-    /// Processes FFT magnitudes for waveform visualization
-//    private func processMagnitudesForVisualization() {
-//        // Take only the amount we want to display
-//        let displayMagnitudes = Array(magnitudes.prefix(FFTConstants.sampleAmount))
-//        
-//        // Apply magnitude limit to prevent spikes
-//        let limitedMagnitudes = displayMagnitudes.map { min($0, FFTConstants.magnitudeLimit) }
-//        
-//        // Normalize magnitudes for display (0.0 to 1.0 range)
-//        let maxMagnitude = limitedMagnitudes.max() ?? 1.0
-//        let normalizedMagnitudes = limitedMagnitudes.map {
-//            maxMagnitude > 0 ? $0 / maxMagnitude : 0.0
-//        }
-//        
-//        // Downsample for smoother visualization
-//        var downsampledMagnitudes: [Float] = []
-//        for i in stride(from: 0, to: normalizedMagnitudes.count, by: FFTConstants.downsampleFactor) {
-//            let endIndex = min(i + FFTConstants.downsampleFactor, normalizedMagnitudes.count)
-//            let chunk = Array(normalizedMagnitudes[i..<endIndex])
-//            let average = chunk.reduce(0, +) / Float(chunk.count)
-//            downsampledMagnitudes.append(average)
-//        }
-//        
-//        // Update the published property
-//        fftMagnitudes = downsampledMagnitudes
-//    }
     
     private func startRecordingTimer() {
         recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
@@ -614,13 +545,13 @@ final class AudioRecorderEngine: ObservableObject {
     private func checkStorageSpace() throws {
         guard let attributes = try? FileManager.default.attributesOfFileSystem(forPath: documentsPath.path),
               let freeSpace = attributes[.systemFreeSize] as? NSNumber else {
-            throw AudioRecordingError.insufficientStorage
+            throw NSError(domain: "StorageError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unable to check storage space"])
         }
         
         // Require at least 100MB of free space
         let requiredSpace: Int64 = 100 * 1024 * 1024
         if freeSpace.int64Value < requiredSpace {
-            throw AudioRecordingError.insufficientStorage
+            throw NSError(domain: "StorageError", code: 2, userInfo: [NSLocalizedDescriptionKey: "Insufficient storage space"])
         }
     }
     
@@ -662,7 +593,8 @@ final class AudioRecorderEngine: ObservableObject {
     
     private func handleEngineStop() {
         if isRecording && !isPaused {
-            recordingState = .error(.audioEngineFailure("Audio engine stopped unexpectedly"))
+            recordingState = .error("Audio engine stopped unexpectedly")
+            reportError(.audio(.audioEngineFailure), operation: "handleEngineStop")
         }
     }
     
@@ -714,6 +646,7 @@ final class AudioRecorderEngine: ObservableObject {
             currentSession = nil
         } catch {
             print("Failed to complete session: \(error)")
+            reportError(.data(.saveOperationFailed), operation: "completeCurrentSession")
         }
     }
 }

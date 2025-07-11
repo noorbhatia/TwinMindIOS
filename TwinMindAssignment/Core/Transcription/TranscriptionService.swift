@@ -35,8 +35,8 @@ final class TranscriptionService: ObservableObject {
     }
     
     // MARK: - Response Model
-    struct TranscriptionResponse:Decodable{
-        let text:String
+    struct TranscriptionResponse: Decodable {
+        let text: String
     }
     
     // MARK: - Published Properties
@@ -51,6 +51,7 @@ final class TranscriptionService: ObservableObject {
     private let config: TranscriptionConfig
     private let networkMonitor: NWPathMonitor
     private let transcriptionQueue = DispatchQueue(label: "transcription.queue", qos: .userInitiated)
+    private let errorManager: ErrorManager?
     
     // Task management
     private var transcriptionTasks: [UUID: Task<Void, Never>] = [:]
@@ -59,18 +60,20 @@ final class TranscriptionService: ObservableObject {
     
     // Local transcription services
     private lazy var localTranscriptionService = LocalTranscriptionService()
-    private let network:NetworkHandlerProtocol
+    private let network: NetworkHandlerProtocol
     
     // MARK: - Initialization
     init(
         modelContext: ModelContext,
         config: TranscriptionConfig = .default,
         apiConfig: APIConfig = .default,
-        network:NetworkHandlerProtocol = NetworkHandler.shared
+        network: NetworkHandlerProtocol = NetworkHandler.shared,
+        errorManager: ErrorManager? = nil
     ) {
         self.modelContext = modelContext
         self.config = config
         self.network = network
+        self.errorManager = errorManager
 
         // Setup network monitoring
         self.networkMonitor = NWPathMonitor()
@@ -140,10 +143,22 @@ final class TranscriptionService: ObservableObject {
             await transcribeSegments(retryableSegments)
         } catch {
             print("Failed to fetch retryable segments: \(error)")
+            reportError(.data(.fetchOperationFailed), operation: "retryFailedTranscriptions")
         }
     }
     
     // MARK: - Private Methods
+    
+    private func reportError(_ error: ErrorManager.AppError, operation: String) {
+        guard let errorManager = errorManager else { return }
+        
+        let context = ErrorManager.ErrorContext(
+            component: "TranscriptionService",
+            operation: operation,
+            userAction: "User attempted transcription operation"
+        )
+        errorManager.reportError(error, context: context)
+    }
     
     private func transcribeSegments(_ segments: [AudioSegment]) async {
         let semaphore = AsyncSemaphore(value: config.maxConcurrentTranscriptions)
@@ -175,44 +190,46 @@ final class TranscriptionService: ObservableObject {
             try modelContext.save()
         } catch {
             print("Failed to save processing start: \(error)")
+            reportError(.data(.saveOperationFailed), operation: "performTranscription")
         }
         
         var lastError: Error?
         
-//         Try network-based transcription first
-         if shouldUseNetworkTranscription() {
-             for attempt in 0..<config.maxRetryAttempts {
-                 do {
-                     _ = try await transcribeWithOpenAI(segment: segment)
-                    
-                     // Success - reset consecutive failures
-                     consecutiveFailures = 0
-                     lastFailureTime = nil
-                    
-                     segment.completeProcessing()
-                     try modelContext.save()
-                    
-                     return
-                    
-                 } catch {
-                     lastError = error
-                    
-                     // Record failure
-                     segment.recordFailure(reason: error.localizedDescription)
-                    
-                     // Check if we should retry
-                     if attempt < config.maxRetryAttempts - 1 {
-                         let delay = calculateRetryDelay(attempt: attempt)
-                         try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-                     }
-                 }
-             }
-            
-             // Network transcription failed - increment consecutive failures
-             consecutiveFailures += 1
-             lastFailureTime = Date()
-         }
-        
+        // Try network-based transcription first
+        if shouldUseNetworkTranscription() {
+            for attempt in 0..<config.maxRetryAttempts {
+                do {
+                    _ = try await transcribeWithOpenAI(segment: segment)
+                   
+                    // Success - reset consecutive failures
+                    consecutiveFailures = 0
+                    lastFailureTime = nil
+                   
+                    segment.completeProcessing()
+                    try modelContext.save()
+                   
+                    return
+                   
+                } catch {
+                    lastError = error
+                   
+                    // Record failure
+                    segment.recordFailure(reason: error.localizedDescription)
+                   
+                    // Check if we should retry
+                    if attempt < config.maxRetryAttempts - 1 {
+                        let delay = calculateRetryDelay(attempt: attempt)
+                        try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                    }
+                }
+            }
+           
+            // Network transcription failed - increment consecutive failures
+            consecutiveFailures += 1
+            lastFailureTime = Date()
+            reportError(.transcription(.networkConnectionFailed), operation: "transcribeWithOpenAI")
+        }
+       
         // Fallback to local transcription
         do {
             _ = try await transcribeLocally(segment: segment)
@@ -222,57 +239,68 @@ final class TranscriptionService: ObservableObject {
         } catch {
             segment.recordFailure(reason: "Network and local transcription failed: \(error.localizedDescription)")
             failedTranscriptions.insert(segment.id)
+            reportError(.transcription(.transcriptionFailed), operation: "transcribeLocally")
             
             do {
                 try modelContext.save()
             } catch {
                 print("Failed to save transcription failure: \(error)")
+                reportError(.data(.saveOperationFailed), operation: "saveTranscriptionFailure")
             }
         }
     }
     
     private func transcribeWithOpenAI(segment: AudioSegment) async throws -> Transcription {
         guard let fileURL = segment.fileURL else {
-            throw TranscriptionError.invalidAudioFile
+            reportError(.transcription(.audioFileInvalid), operation: "transcribeWithOpenAI")
+            throw NSError(domain: "TranscriptionError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid audio file for transcription"])
         }
         
-        let endpoint = Endpoint(path:  "/audio/transcriptions", method: .POST, queryItems: nil)
+        let endpoint = Endpoint(path: "/audio/transcriptions", method: .POST, queryItems: nil)
         
-        let response: TranscriptionResponse = try await network.uploadMultipartFile(fileURL: fileURL, endpoint:endpoint, config: APIConfig.default)
-       
-        // Create transcription model
-        let transcription = Transcription(
-            text: response.text,
-            confidence: 0.95, // OpenAI doesn't provide confidence scores
-            language: "",
-            processingMethod: .openaiWhisper,
-            apiProvider: "OpenAI",
-            modelUsed: "",
-            processingDuration: Date().timeIntervalSince(segment.processingStartTime ?? Date()),
-            audioSegment: segment
-        )
-        
-        transcription.complete(
-            confidence: 0.95,
-            language: ""
-        )
-        
-        modelContext.insert(transcription)
-        segment.transcription = transcription
-        
-        return transcription
+        do {
+            let response: TranscriptionResponse = try await network.uploadMultipartFile(fileURL: fileURL, endpoint: endpoint, config: APIConfig.default)
+           
+            // Create transcription model
+            let transcription = Transcription(
+                text: response.text,
+                confidence: 0.95, // OpenAI doesn't provide confidence scores
+                language: "",
+                processingMethod: .openaiWhisper,
+                apiProvider: "OpenAI",
+                modelUsed: "",
+                processingDuration: Date().timeIntervalSince(segment.processingStartTime ?? Date()),
+                audioSegment: segment
+            )
+            
+            transcription.complete(
+                confidence: 0.95,
+                language: ""
+            )
+            
+            modelContext.insert(transcription)
+            segment.transcription = transcription
+            
+            return transcription
+        } catch {
+            reportError(.transcription(.serverError), operation: "transcribeWithOpenAI")
+            throw error
+        }
     }
     
     private func transcribeLocally(segment: AudioSegment) async throws -> Transcription {
-        let transcription = try await localTranscriptionService.transcribe(segment: segment)
-        
-        modelContext.insert(transcription)
-        segment.transcription = transcription
-        
-        return transcription
+        do {
+            let transcription = try await localTranscriptionService.transcribe(segment: segment)
+            
+            modelContext.insert(transcription)
+            segment.transcription = transcription
+            
+            return transcription
+        } catch {
+            reportError(.transcription(.localTranscriptionUnavailable), operation: "transcribeLocally")
+            throw error
+        }
     }
-    
-   
     
     private func shouldUseNetworkTranscription() -> Bool {
         // Don't use network if no connectivity
@@ -310,59 +338,6 @@ final class TranscriptionService: ObservableObject {
         networkMonitor.start(queue: DispatchQueue(label: "network.monitor"))
     }
 }
-
-// MARK: - Supporting Types
-
-enum TranscriptionError: LocalizedError {
-    case invalidAudioFile
-    case apiKeyNotConfigured
-    case invalidResponse
-    case apiError(Int, String)
-    case networkUnavailable
-    case localTranscriptionFailed
-    
-    var errorDescription: String? {
-        switch self {
-        case .invalidAudioFile:
-            return "Invalid audio file for transcription"
-        case .apiKeyNotConfigured:
-            return "OpenAI API key not configured"
-        case .invalidResponse:
-            return "Invalid response from transcription service"
-        case .apiError(let code, let message):
-            return "API Error (\(code)): \(message)"
-        case .networkUnavailable:
-            return "Network unavailable for transcription"
-        case .localTranscriptionFailed:
-            return "Local transcription service failed"
-        }
-    }
-}
-
-//struct OpenAITranscriptionResponse: Codable {
-//    let text: String
-//    let language: String?
-//    let duration: Double?
-//    let segments: [TranscriptionSegment]?
-//    
-//    struct TranscriptionSegment: Codable {
-//        let id: Int
-//        let start: Double
-//        let end: Double
-//        let text: String
-//        let temperature: Double?
-//        let avgLogprob: Double?
-//        let compressionRatio: Double?
-//        let noSpeechProb: Double?
-//        
-//        private enum CodingKeys: String, CodingKey {
-//            case id, start, end, text, temperature
-//            case avgLogprob = "avg_logprob"
-//            case compressionRatio = "compression_ratio"
-//            case noSpeechProb = "no_speech_prob"
-//        }
-//    }
-//}
 
 // MARK: - Async Semaphore
 

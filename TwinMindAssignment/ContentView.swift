@@ -15,7 +15,7 @@ struct ContentView: View {
     @State private var segmentationService: AudioSegmentationService?
     @State private var transcriptionService: TranscriptionService?
     @State private var selectedTab = 0
-    
+    @StateObject private var errorHandler = ErrorManager()
     var body: some View {
         TabView(selection: $selectedTab) {
             // Recording Tab
@@ -82,16 +82,19 @@ struct ContentView: View {
             }
             .tag(2)
         }
+        .errorAlert(errorHandler){
+            
+        }
         .onAppear {
             // Initialize services with model context
             if audioManager == nil {
-                audioManager = AudioManager(modelContext: modelContext)
+                audioManager = AudioManager(modelContext: modelContext, errorManager: errorHandler)
             }
             if segmentationService == nil {
-                segmentationService = AudioSegmentationService(modelContext: modelContext)
+                segmentationService = AudioSegmentationService(modelContext: modelContext, errorManager: errorHandler)
             }
             if transcriptionService == nil {
-                transcriptionService = TranscriptionService(modelContext: modelContext)
+                transcriptionService = TranscriptionService(modelContext: modelContext, errorManager: errorHandler)
             }
             
             // Request permissions on app launch if needed

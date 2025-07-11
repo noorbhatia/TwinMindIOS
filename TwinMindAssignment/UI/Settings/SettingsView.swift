@@ -56,14 +56,14 @@ struct SettingsView: View {
                 Label("Microphone Access", systemImage: "mic")
                 Spacer()
                 Group {
-                    if audioManager.isPermissionGranted {
+                    if audioManager.isMicPermissionGranted {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.green)
                     } else {
                         Button("Grant") {
                             Task {
                                 await audioManager.requestMicrophonePermission()
-                                if !audioManager.isPermissionGranted {
+                                if !audioManager.isMicPermissionGranted {
                                     showingPermissionAlert = true
                                 }
                             }

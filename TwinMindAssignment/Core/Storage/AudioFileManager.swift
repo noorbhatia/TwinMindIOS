@@ -38,31 +38,7 @@ class AudioFileManager: ObservableObject {
         }
     }
     
-    enum FileManagerError: LocalizedError {
-        case encryptionFailed
-        case decryptionFailed
-        case insufficientStorage
-        case fileNotFound
-        case corruptedFile
-        case permissionDenied
-        
-        var errorDescription: String? {
-            switch self {
-            case .encryptionFailed:
-                return "Failed to encrypt audio file"
-            case .decryptionFailed:
-                return "Failed to decrypt audio file"
-            case .insufficientStorage:
-                return "Insufficient storage space available"
-            case .fileNotFound:
-                return "Audio file not found"
-            case .corruptedFile:
-                return "Audio file appears to be corrupted"
-            case .permissionDenied:
-                return "Permission denied accessing audio file"
-            }
-        }
-    }
+
     
     @Published var configuration: StorageConfiguration
     @Published var currentStorageUsage: Int64 = 0
@@ -158,7 +134,7 @@ class AudioFileManager: ObservableObject {
         let currentUsage = getCurrentStorageUsage()
         
         if available < requiredSize {
-            throw FileManagerError.insufficientStorage
+            throw NSError(domain: "AudioFileManagerError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Insufficient storage space available"])
         }
         
         if currentUsage + requiredSize > configuration.maxStorageSize {
@@ -167,7 +143,7 @@ class AudioFileManager: ObservableObject {
             
             let newUsage = getCurrentStorageUsage()
             if newUsage + requiredSize > configuration.maxStorageSize {
-                throw FileManagerError.insufficientStorage
+                throw NSError(domain: "AudioFileManagerError", code: 2, userInfo: [NSLocalizedDescriptionKey: "Insufficient storage space available"])
             }
         }
     }
@@ -355,7 +331,7 @@ class AudioFileManager: ObservableObject {
             let sealedBox = try AES.GCM.seal(data, using: encryptionKey)
             return sealedBox.combined!
         } catch {
-            throw FileManagerError.encryptionFailed
+            throw NSError(domain: "AudioFileManagerError", code: 3, userInfo: [NSLocalizedDescriptionKey: "Failed to encrypt audio file"])
         }
     }
     
@@ -365,7 +341,7 @@ class AudioFileManager: ObservableObject {
             let sealedBox = try AES.GCM.SealedBox(combined: encryptedData)
             return try AES.GCM.open(sealedBox, using: encryptionKey)
         } catch {
-            throw FileManagerError.decryptionFailed
+            throw NSError(domain: "AudioFileManagerError", code: 4, userInfo: [NSLocalizedDescriptionKey: "Failed to decrypt audio file"])
         }
     }
     

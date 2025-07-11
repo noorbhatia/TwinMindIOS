@@ -421,7 +421,7 @@ actor WaveformAnalyzer {
                 do {
                     let asset = AVAsset(url: url)
                     guard let track = asset.tracks(withMediaType: .audio).first else {
-                        throw WaveformError.noAudioTrack
+                        throw NSError(domain: "WaveformError", code: 1, userInfo: [NSLocalizedDescriptionKey: "No audio track found"])
                     }
                     
                     let reader = try AVAssetReader(asset: asset)
@@ -475,19 +475,7 @@ actor WaveformAnalyzer {
         }
     }
     
-    enum WaveformError: LocalizedError {
-        case noAudioTrack
-        case processingFailed
-        
-        var errorDescription: String? {
-            switch self {
-            case .noAudioTrack:
-                return "No audio track found in the file"
-            case .processingFailed:
-                return "Failed to process audio file"
-            }
-        }
-    }
+
 }
 
 struct SimpleStaticWaveformView: View {

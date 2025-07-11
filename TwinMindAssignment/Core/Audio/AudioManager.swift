@@ -15,21 +15,17 @@ final class AudioManager: ObservableObject {
     @Published var audioSamples: [Float] = []
     @Published var fftMagnitudes: [Float] = []
     @Published var recordingState: RecordingState = .stopped
-    @Published var isPermissionGranted = false
+    @Published var isMicPermissionGranted = false
     @Published var currentAudioRoute = "Unknown"
     @Published var isBackgroundRecordingEnabled = false
     @Published var backgroundTimeRemaining: TimeInterval = 0
     @Published var audioConfiguration: AudioConfiguration = .high
-    
-    // Error handling
-    @Published var lastError: AudioRecordingError?
-    @Published var showingErrorAlert = false
-    
+
     // MARK: - Private Components
     private let audioSession: AudioSessionManager
     private let audioRecorder: AudioRecorderEngine
     private let backgroundTaskManager: BackgroundTaskManager
-    
+    private let errorManager: ErrorManager
     private let transcriptionService: TranscriptionService
     private let modelContext: ModelContext
     
@@ -39,9 +35,10 @@ final class AudioManager: ObservableObject {
     private var recordingStartTime: Date?
     
     // MARK: - Initialization
-    init(modelContext: ModelContext) {
+    init(modelContext: ModelContext, errorManager: ErrorManager) {
         // Store dependencies
         self.modelContext = modelContext
+        self.errorManager = errorManager
         
         // Initialize core components
         self.audioSession = AudioSessionManager()
@@ -50,7 +47,8 @@ final class AudioManager: ObservableObject {
         self.audioRecorder = AudioRecorderEngine(
             audioSession: audioSession,
             transcriptionService: transcriptionService,
-            modelContext: modelContext
+            modelContext: modelContext,
+            errorManager: errorManager
         )
         self.backgroundTaskManager = BackgroundTaskManager()
         
@@ -69,10 +67,10 @@ final class AudioManager: ObservableObject {
     func startRecording() async {
         do {
             // Request permissions if needed
-            if !isPermissionGranted {
+            if !isMicPermissionGranted {
                 let granted = await audioSession.requestRecordPermission()
                 if !granted {
-                    handleError(.permissionDenied)
+                    reportError(.audio(.microphonePermissionDenied), operation: "startRecording")
                     return
                 }
             }
@@ -89,10 +87,8 @@ final class AudioManager: ObservableObject {
             recordingStartTime = Date()
             try await audioRecorder.startRecording()
             
-        } catch let error as AudioRecordingError {
-            handleError(error)
         } catch {
-            handleError(.audioEngineFailure(error.localizedDescription))
+            reportError(.audio(.recordingStartFailed), operation: "startRecording")
         }
     }
     
@@ -105,10 +101,8 @@ final class AudioManager: ObservableObject {
     func resumeRecording() {
         do {
             try audioRecorder.resumeRecording()
-        } catch let error as AudioRecordingError {
-            handleError(error)
         } catch {
-            handleError(.audioEngineFailure(error.localizedDescription))
+            reportError(.audio(.recordingInterrupted), operation: "resumeRecording")
         }
     }
     
@@ -188,18 +182,12 @@ final class AudioManager: ObservableObject {
         return ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file)
     }
     
-    /// Clears any error state
-    func clearError() {
-        lastError = nil
-        showingErrorAlert = false
-    }
-    
     // MARK: - Private Methods
     
     private func setupBindings() {
         // Bind audio session properties
         audioSession.$isRecordPermissionGranted
-            .assign(to: \.isPermissionGranted, on: self)
+            .assign(to: \.isMicPermissionGranted, on: self)
             .store(in: &cancellables)
         
         audioSession.$currentRoute
@@ -242,15 +230,6 @@ final class AudioManager: ObservableObject {
         
         backgroundTaskManager.$backgroundTimeRemaining
             .assign(to: \.backgroundTimeRemaining, on: self)
-            .store(in: &cancellables)
-        
-        // Handle recording state changes
-        audioRecorder.$recordingState
-            .sink { [weak self] state in
-                if case .error(let error) = state {
-                    self?.handleError(error)
-                }
-            }
             .store(in: &cancellables)
     }
     
@@ -316,10 +295,13 @@ final class AudioManager: ObservableObject {
         await audioSession.checkRecordPermission()
     }
     
-    private func handleError(_ error: AudioRecordingError) {
-        lastError = error
-        showingErrorAlert = true
-        print("Audio error: \(error.localizedDescription)")
+    private func reportError(_ error: ErrorManager.AppError, operation: String) {
+        let context = ErrorManager.ErrorContext(
+            component: "AudioManager",
+            operation: operation,
+            userAction: "User attempted audio operation"
+        )
+        errorManager.reportError(error, context: context)
     }
     
     private func handleAppEnteredBackground() {
@@ -349,46 +331,6 @@ final class AudioManager: ObservableObject {
         if isRecording {
             // Optionally stop recording to save what we have
             // _ = stopRecording()
-        }
-    }
-}
-
-// MARK: - Error Handling Extensions
-extension AudioManager {
-    
-    /// Gets user-friendly error message
-    func getErrorMessage() -> String {
-        guard let error = lastError else { return "" }
-        
-        switch error {
-        case .permissionDenied:
-            return "Microphone access is required to record audio. Please enable it in Settings."
-        case .audioSessionNotConfigured:
-            return "Audio system could not be configured. Please try again."
-        case .fileCreationFailure:
-            return "Could not create recording file. Please check available storage."
-        case .insufficientStorage:
-            return "Insufficient storage space. Please free up space and try again."
-        case .audioEngineFailure(let message):
-            return "Recording error: \(message)"
-        case .interruptionFailure:
-            return "Recording was interrupted and could not be resumed."
-        }
-    }
-    
-    /// Gets suggested action for error
-    func getSuggestedAction() -> String {
-        guard let error = lastError else { return "" }
-        
-        switch error {
-        case .permissionDenied:
-            return "Go to Settings > Privacy & Security > Microphone and enable access for this app."
-        case .insufficientStorage:
-            return "Delete some files or apps to free up storage space."
-        case .audioSessionNotConfigured, .audioEngineFailure, .interruptionFailure:
-            return "Close and restart the app, then try recording again."
-        case .fileCreationFailure:
-            return "Restart the app and ensure you have sufficient storage space."
         }
     }
 }
