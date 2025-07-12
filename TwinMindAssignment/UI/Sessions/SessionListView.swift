@@ -5,18 +5,25 @@ struct SessionListView: View {
     
     @EnvironmentObject private var segmentationService: AudioSegmentationService
     @EnvironmentObject private var transcriptionService: TranscriptionService
+    @Environment(\.modelContext) private var modelContext
     @Query private var recordingSessions: [Session]
 
     @State private var searchText = ""
     @State private var selectedSession: Session?
     @State private var showingDeleteAlert = false
     @State private var sessionToDelete: Session?
+    @State private var sessionsBeingDeleted: Set<UUID> = []
     @StateObject var player = AudioPlayer()
+    
+    
+    //MARK: - Computed properties
     var filteredSessions: [Session] {
+        let sessions = recordingSessions.filter { !sessionsBeingDeleted.contains($0.id) }
+        
         if searchText.isEmpty {
-            return recordingSessions.sorted { $0.startTime > $1.startTime }
+            return sessions.sorted { $0.startTime > $1.startTime }
         } else {
-            return recordingSessions.filter { session in
+            return sessions.filter { session in
                 session.title.localizedCaseInsensitiveContains(searchText) ||
                 session.fullTranscriptionText.localizedCaseInsensitiveContains(searchText)
             }.sorted { $0.startTime > $1.startTime }
@@ -36,11 +43,27 @@ struct SessionListView: View {
             VStack {
                 if recordingSessions.isEmpty {
                     emptyStateView
+                } else if filteredSessions.isEmpty {
+                    // Show search results empty state
+                    VStack(spacing: 20) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 60))
+                            .foregroundColor(.secondary)
+                        
+                        Text("No Results Found")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        
+                        Text("Try adjusting your search terms")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(40)
                 } else {
                     sessionsList
                 }
             }
-            .navigationTitle("Recording Sessions")
+            .navigationTitle("Sessions")
             .navigationBarTitleDisplayMode(.large)
             .searchable(text: $searchText, prompt: "Search sessions or transcriptions")
             .toolbar {
@@ -49,12 +72,7 @@ struct SessionListView: View {
                 }
             }
         }
-        .onAppear(perform: {
-            print("Query result: \(recordingSessions.count) sessions")
-            for session in recordingSessions {
-                print("Session: \(session.title), Start: \(session.startTime), Completed: \(session.isCompleted)")
-            }
-        })
+        
         .sheet(item: $selectedSession) { session in
             SessionDetailView(
 
@@ -73,6 +91,7 @@ struct SessionListView: View {
             Text("Are you sure you want to delete this recording session? This action cannot be undone.")
         }
     }
+    
     
     private var emptyStateView: some View {
         VStack(spacing: 20) {
@@ -93,7 +112,7 @@ struct SessionListView: View {
     }
     
     private var sessionsList: some View {
-        List {
+        List{
             ForEach(groupedSessions, id: \.0) { dateGroup, sessions in
                 Section(header: Text(dateGroup)) {
                     ForEach(sessions) { session in
@@ -108,6 +127,12 @@ struct SessionListView: View {
                             }
                         )
                     }
+                    .onDelete { indexSet in
+                        for index in indexSet {
+                            sessionToDelete = sessions[index]
+                            showingDeleteAlert = true
+                        }
+                    }
                 }
             }
         }
@@ -115,18 +140,33 @@ struct SessionListView: View {
     }
     
     private func deleteSession(_ session: Session) {
-        withAnimation {
-            // Clean up associated files
+        // First, mark the session as being deleted to trigger smooth animation
+        withAnimation(.easeInOut(duration: 0.3)) {
+            sessionsBeingDeleted.insert(session.id)
+        }
+        
+        // After animation completes, actually delete the session
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
             Task {
                 await segmentationService.cleanupSegments(for: session)
             }
             
-            // Delete from model context will be handled by the parent view
-            // since we don't have direct access to modelContext here
+            modelContext.delete(session)
+            do {
+                try modelContext.save()
+                // Remove from pending deletion set (cleanup)
+                sessionsBeingDeleted.remove(session.id)
+            } catch {
+                // If deletion fails, restore the session in the UI
+                withAnimation {
+                    sessionsBeingDeleted.remove(session.id)
+                }
+                print("Failed to delete session: \(error.localizedDescription)")
+            }
         }
     }
 }
-
+//MARK: - List Item View
 struct SessionRowView: View {
     let session: Session
     let onTap: () -> Void
@@ -134,9 +174,7 @@ struct SessionRowView: View {
     
     var body: some View {
         Button(action: onTap) {
-            HStack {
                 VStack(alignment: .leading, spacing: 8) {
-                    // Title and duration
                     HStack {
                         Text(session.title)
                             .font(.headline)
@@ -149,40 +187,25 @@ struct SessionRowView: View {
                             .foregroundColor(.secondary)
                     }
                     
-                    // Time and status
-                    HStack {
-                        Text(session.startTime, format: .dateTime.hour().minute())
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        Spacer()
-                        
-                        if session.isCompleted {
-                            transcriptionStatusView
-                        } else {
-                            Label("In Progress", systemImage: "clock")
-                                .font(.caption)
-                                .foregroundColor(.orange)
-                        }
-                    }
                     
-                    // File size and format
-                    HStack {
-                        Text(session.formattedFileSize)
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
+                    HStack{
+                            Text(session.startTime, format: .dateTime.hour().minute())
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+
+                            Text(session.formattedFileSize)
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
                         
-                        Spacer()
-                        
-                        Text(session.audioQuality)
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
+                     
                     
                     // Transcription preview
                     if !session.fullTranscriptionText.isEmpty {
                         Text(session.fullTranscriptionText)
                             .font(.caption)
+                            .italic()
                             .foregroundColor(.secondary)
                             .lineLimit(2)
                             .padding(.top, 4)
@@ -190,10 +213,8 @@ struct SessionRowView: View {
                 }
                 .padding(.vertical, 4)
                 
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
+               
+            
         }
         .buttonStyle(.plain)
         .contextMenu {
@@ -205,32 +226,10 @@ struct SessionRowView: View {
                 Label("Delete", systemImage: "trash")
             }
         }
+        
     }
     
-    private var transcriptionStatusView: some View {
-        Group {
-            if session.totalTranscriptionsCount == 0 {
-                Label("Not Transcribed", systemImage: "text.bubble")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            } else {
-                let progress = session.transcriptionProgress
-                if progress >= 1.0 {
-                    Label("Transcribed", systemImage: "checkmark.circle.fill")
-                        .font(.caption)
-                        .foregroundColor(.green)
-                } else if progress > 0 {
-                    Label("Transcribing...", systemImage: "clock")
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                } else {
-                    Label("Pending", systemImage: "clock")
-                        .font(.caption)
-                        .foregroundColor(.orange)
-                }
-            }
-        }
-    }
+    
 }
 
 // MARK: - Extensions

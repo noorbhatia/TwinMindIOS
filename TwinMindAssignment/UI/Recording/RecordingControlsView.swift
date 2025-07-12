@@ -3,6 +3,7 @@ import Speech
 import SwiftData
 import DSWaveformImage
 import DSWaveformImageViews
+import Foundation
 
 /// Recording controls interface with visual feedback and audio monitoring
 struct RecordingControlsView: View {
@@ -12,6 +13,9 @@ struct RecordingControlsView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var showingSettingsSheet = false
     @State private var showingPermissionAlert = false
+    @State private var showingTitleInputAlert = false
+    @State private var completedSession: Session?
+    @State private var titleInputText = ""
     // Waveform configuration
     @State private var liveConfiguration: Waveform.Configuration = Waveform.Configuration(
         style: .striped(.init(color: .systemRed, width: 3, spacing: 3)),
@@ -33,12 +37,26 @@ struct RecordingControlsView: View {
         .sheet(isPresented: $showingSettingsSheet) {
             RecordingSettingsView(audioManager: audioManager)
         }
-        .onReceive(audioManager.$isRecording) { isRecording in
-            if !isRecording {
-                // Samples are automatically cleared by AudioRecorderEngine
-                print("Recording stopped - samples will be cleared by engine")
+        .alert("Recording Complete", isPresented: $showingTitleInputAlert) {
+            TextField("Session Title", text: $titleInputText)
+            Button("Cancel") {
+                showingTitleInputAlert = false
+                completedSession = nil
+            }
+            Button("Save") {
+                saveTitleFromAlert()
+            }
+        } message: {
+            if let session = completedSession {
+                Text("Duration: \(session.formattedDuration)\nEnter a title for this recording session.")
             }
         }
+//        .onReceive(audioManager.$isRecording) { isRecording in
+//            if !isRecording {
+//                // Samples are automatically cleared by AudioRecorderEngine
+//                print("Recording stopped - samples will be cleared by engine")
+//            }
+//        }
         .onReceive(localTranscriptionService.$permissionStatus){status in
             if status == .denied || status == .restricted {
                  errorManager.reportError(.transcription(.speechRecognitionPermissionDenied), context: .init(component: "Speech", operation: "recognition"))
@@ -169,7 +187,7 @@ struct RecordingControlsView: View {
             // Stop Button
             if audioManager.isRecording {
                 Button(action: {
-                    _ = audioManager.stopRecording()
+                    stopRecordingAndShowTitleInput()
                 }) {
                     Image(systemName: "stop.circle.fill")
                         .font(.system(size: 44)) 
@@ -296,6 +314,55 @@ extension RecordingControlsView{
     
     private func cancelRecording() {
         audioManager.cancelRecording()
+    }
+    
+    private func stopRecordingAndShowTitleInput() {
+        _ = audioManager.stopRecording()
+        
+        // Get the most recently completed session
+        Task {
+            if let session = getMostRecentCompletedSession() {
+                await MainActor.run {
+                    completedSession = session
+                    titleInputText = session.title
+                    showingTitleInputAlert = true
+                }
+            }
+        }
+    }
+    
+    private func saveTitleFromAlert() {
+        guard let session = completedSession else { return }
+        
+        let trimmedTitle = titleInputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedTitle.isEmpty {
+            session.updateTitle(trimmedTitle)
+            do {
+                try modelContext.save()
+            } catch {
+                print("Failed to save session title: \(error)")
+            }
+        }
+        
+        showingTitleInputAlert = false
+        completedSession = nil
+    }
+    
+    private func getMostRecentCompletedSession() -> Session? {
+        let descriptor = FetchDescriptor<Session>(
+            predicate: #Predicate<Session> { session in
+                session.isCompleted == true
+            },
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+        
+        do {
+            let sessions = try modelContext.fetch(descriptor)
+            return sessions.first
+        } catch {
+            print("Failed to fetch recent session: \(error)")
+            return nil
+        }
     }
     
     private func openAppSettings() {
