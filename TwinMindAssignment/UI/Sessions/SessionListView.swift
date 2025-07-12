@@ -2,10 +2,11 @@ import SwiftUI
 import SwiftData
 
 struct SessionListView: View {
-    let sessions: [Session]
-    let segmentationService: AudioSegmentationService
-    let transcriptionService: TranscriptionService
     
+    @EnvironmentObject private var segmentationService: AudioSegmentationService
+    @EnvironmentObject private var transcriptionService: TranscriptionService
+    @Query private var recordingSessions: [Session]
+
     @State private var searchText = ""
     @State private var selectedSession: Session?
     @State private var showingDeleteAlert = false
@@ -13,9 +14,9 @@ struct SessionListView: View {
     @StateObject var player = AudioPlayer()
     var filteredSessions: [Session] {
         if searchText.isEmpty {
-            return sessions.sorted { $0.startTime > $1.startTime }
+            return recordingSessions.sorted { $0.startTime > $1.startTime }
         } else {
-            return sessions.filter { session in
+            return recordingSessions.filter { session in
                 session.title.localizedCaseInsensitiveContains(searchText) ||
                 session.fullTranscriptionText.localizedCaseInsensitiveContains(searchText)
             }.sorted { $0.startTime > $1.startTime }
@@ -33,7 +34,7 @@ struct SessionListView: View {
     var body: some View {
         NavigationView {
             VStack {
-                if sessions.isEmpty {
+                if recordingSessions.isEmpty {
                     emptyStateView
                 } else {
                     sessionsList
@@ -48,6 +49,11 @@ struct SessionListView: View {
                 }
             }
         }
+        .onAppear(perform: {
+            print("Query result: \(recordingSessions.count) sessions")
+
+            
+        })
         .sheet(item: $selectedSession) { session in
             SessionDetailView(
 

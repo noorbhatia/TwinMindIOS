@@ -24,11 +24,58 @@ struct TwinMindAssignmentApp: App {
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()
+    
+    @StateObject private var errorHandler = ErrorManager()
+    @State private var audioManager:AudioManager?
+    @State private var segmentationService: AudioSegmentationService?
+    @State private var transcriptionService: TranscriptionService?
+    @State private var localTranscriptionService: LocalTranscriptionService?
+    @Environment(\.modelContext) private var modelContext
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            Group{
+                if let audioManager = audioManager, let segmentationService = segmentationService, let transcriptionService = transcriptionService,  let localTranscriptionService = localTranscriptionService{
+                    
+                    ContentView()
+                        .environmentObject(errorHandler)
+                        .environmentObject(audioManager)
+                        .environmentObject(segmentationService)
+                        .environmentObject(transcriptionService)
+                        .environmentObject(localTranscriptionService)
+                        .modelContainer(sharedModelContainer)
+                    
+                }else{
+                    ProgressView("Initializing..")
+                }
+            }
+            .onAppear {
+                if audioManager == nil {
+                    audioManager = AudioManager(
+                        modelContext: modelContext,
+                        errorManager: errorHandler
+                    )
+                }
+                if segmentationService == nil {
+                    segmentationService = AudioSegmentationService(
+                        modelContext: modelContext,
+                        errorManager: errorHandler
+                    )
+                }
+                if transcriptionService == nil {
+                    transcriptionService = TranscriptionService(
+                        modelContext: modelContext,
+                        errorManager: errorHandler
+                    )
+                }
+                if localTranscriptionService == nil {
+                    localTranscriptionService = LocalTranscriptionService(
+                        errorManager: errorHandler
+                    )
+                }
+            }
+            
         }
-        .modelContainer(sharedModelContainer)
+        
     }
 }

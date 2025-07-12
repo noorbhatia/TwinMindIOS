@@ -8,14 +8,14 @@ final class LocalTranscriptionService: ObservableObject {
     
     // MARK: - Properties
     private let speechRecognizer: SFSpeechRecognizer?
-    private var isAvailable = false
+    @Published private(set) var isAvailable = false
+    @Published private(set) var permissionStatus:SFSpeechRecognizerAuthorizationStatus = .notDetermined
     private let errorManager: ErrorManager?
     
     // MARK: - Initialization
     init(locale: Locale = Locale.current, errorManager: ErrorManager? = nil) {
         self.speechRecognizer = SFSpeechRecognizer(locale: locale)
         self.errorManager = errorManager
-        checkAvailability()
     }
     
     // MARK: - Public Methods
@@ -95,6 +95,10 @@ final class LocalTranscriptionService: ObservableObject {
     
     /// Checks if local transcription is available
     func checkAvailability() {
+        if permissionStatus == .authorized, isAvailable{
+            return
+        }
+        
         guard let speechRecognizer = speechRecognizer else {
             isAvailable = false
             return
@@ -105,11 +109,19 @@ final class LocalTranscriptionService: ObservableObject {
     
     /// Requests speech recognition permission
     func requestSpeechRecognitionPermission() async -> SFSpeechRecognizerAuthorizationStatus {
-        return await withCheckedContinuation { continuation in
+        let status = await withCheckedContinuation { continuation in
             SFSpeechRecognizer.requestAuthorization { status in
                 continuation.resume(returning: status)
             }
         }
+        self.permissionStatus = status
+        guard let speechRecognizer = speechRecognizer else {
+            isAvailable = false
+            return status
+        }
+        
+        isAvailable = speechRecognizer.isAvailable
+        return status
     }
     
     /// Gets the current speech recognition authorization status

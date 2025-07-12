@@ -418,6 +418,8 @@ class ErrorManager: ObservableObject {
             return .retry(maxAttempts: 5, backoffMultiplier: 1.5)
         case .permission(.microphoneAccessDenied):
             return .userAction(required: "grant microphone permission")
+        case .transcription(.speechRecognitionPermissionDenied):
+            return .userAction(required: "grant speech permission")
         case .system(.memoryWarning):
             return .restart(component: "app")
         case .data(.databaseCorrupted):

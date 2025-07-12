@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct SettingsView: View {
-    let audioManager: AudioManager
-    let transcriptionService: TranscriptionService
+    @EnvironmentObject private var audioManager: AudioManager
+    @EnvironmentObject private var transcriptionService: TranscriptionService
     
     @State private var showingAPIKeyAlert = false
     @State private var apiKey = ""

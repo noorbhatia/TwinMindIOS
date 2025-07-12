@@ -6,7 +6,9 @@ import DSWaveformImageViews
 
 /// Recording controls interface with visual feedback and audio monitoring
 struct RecordingControlsView: View {
-    @ObservedObject var audioManager: AudioManager
+    @EnvironmentObject private var audioManager: AudioManager
+    @EnvironmentObject private var errorManager: ErrorManager
+    @EnvironmentObject private var localTranscriptionService: LocalTranscriptionService
     @Environment(\.modelContext) private var modelContext
     @State private var showingSettingsSheet = false
     @State private var showingPermissionAlert = false
@@ -19,47 +21,15 @@ struct RecordingControlsView: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            // Recording Status and Info
-//            recordingStatusSection
-            
-            // Live Waveform Visualization
             if audioManager.isRecording {
                 WaveformView(samples: audioManager.audioSamples)
                     .frame(width: 150, height: 150)
             }
-            
-            // Main Recording Controls
-            recordingControls
-            
-            // Secondary Controls
-            secondaryControls
+
+            recordingControls()
+            secondaryControls()
         }
         .padding(.horizontal, 20)
-//        .alert("Microphone Permission Required", isPresented: $showingPermissionAlert) {
-//            Button("Settings") {
-//                openAppSettings()
-//            }
-//            Button("Cancel", role: .cancel) { }
-//        } message: {
-//            Text("This app needs microphone access to record audio. Please enable it in Settings.")
-//        }
-//        .alert("Recording Error", isPresented: $audioManager.showingErrorAlert) {
-//            Button("OK") {
-//                audioManager.clearError()
-//            }
-//            if audioManager.lastError == .permissionDenied {
-//                Button("Settings") {
-//                    openAppSettings()
-//                }
-//            }
-//        } message: {
-//            VStack(alignment: .leading, spacing: 8) {
-//                Text(audioManager.getErrorMessage())
-//                Text(audioManager.getSuggestedAction())
-//                    .font(.caption)
-//                    .foregroundColor(.secondary)
-//            }
-//        }
         .sheet(isPresented: $showingSettingsSheet) {
             RecordingSettingsView(audioManager: audioManager)
         }
@@ -69,9 +39,16 @@ struct RecordingControlsView: View {
                 print("Recording stopped - samples will be cleared by engine")
             }
         }
+        .onReceive(localTranscriptionService.$permissionStatus){status in
+            if status == .denied || status == .restricted {
+                 errorManager.reportError(.transcription(.speechRecognitionPermissionDenied), context: .init(component: "Speech", operation: "recognition"))
+            }
+        }
         .onAppear {
             Task{
-                await requestSpeechRecognitionPermission()
+                
+                await audioManager.checkPermissionStatus()
+
             }
         }
     }
@@ -167,8 +144,8 @@ struct RecordingControlsView: View {
     }
     
     // MARK: - Recording Controls
-    
-    private var recordingControls: some View {
+    @ViewBuilder
+    private func recordingControls() -> some View {
         HStack(spacing: 32) {
             // Cancel/Stop Button
             if audioManager.isRecording {
@@ -206,8 +183,8 @@ struct RecordingControlsView: View {
     }
     
     // MARK: - Secondary Controls
-    
-    private var secondaryControls: some View {
+    @ViewBuilder
+    private func secondaryControls() -> some View {
         HStack(spacing: 20) {
             // Settings Button
             Button(action: { showingSettingsSheet = true }) {
@@ -221,18 +198,7 @@ struct RecordingControlsView: View {
             
             Spacer()
             
-            // Permission Status
-            if !audioManager.isMicPermissionGranted {
-                Button(action: requestPermission) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "mic.slash")
-                        Text("Enable Mic")
-                    }
-                    .font(.callout)
-                    .foregroundColor(.red)
-                }
-            }
-            
+           
             // Recording Quality Indicator
             Text(audioManager.getConfigurationDisplayName(audioManager.audioConfiguration))
                 .font(.caption)
@@ -309,27 +275,26 @@ extension RecordingControlsView{
 extension RecordingControlsView{
     private func toggleRecording() {
         Task {
-            if !audioManager.isRecording {
-                await audioManager.startRecording()
-            } else if audioManager.isPaused {
-                audioManager.resumeRecording()
-            } else {
-                audioManager.pauseRecording()
+            if !localTranscriptionService.isAvailable || localTranscriptionService.permissionStatus != .authorized {
+                _ = await localTranscriptionService.requestSpeechRecognitionPermission()
+                return
+                
+            }else{
+                if !audioManager.isRecording {
+                    
+                    await audioManager.startRecording()
+                } else if audioManager.isPaused {
+                    audioManager.resumeRecording()
+                } else {
+                    audioManager.pauseRecording()
+                }
             }
+            
         }
     }
     
     private func cancelRecording() {
         audioManager.cancelRecording()
-    }
-    
-    private func requestPermission() {
-        Task {
-            let granted = await audioManager.requestMicrophonePermission()
-            if !granted {
-                showingPermissionAlert = true
-            }
-        }
     }
     
     private func openAppSettings() {
