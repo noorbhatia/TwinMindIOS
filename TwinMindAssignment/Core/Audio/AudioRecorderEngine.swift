@@ -511,8 +511,8 @@ final class AudioRecorderEngine: ObservableObject {
         audioSamples.append(normalized)
         
         // Keep only the last 100 samples for performance
-        if audioSamples.count > 10 {
-            audioSamples.removeFirst(audioSamples.count - 10)
+        if audioSamples.count > 300 {
+            audioSamples.removeFirst(audioSamples.count - 300)
         }
     }
     

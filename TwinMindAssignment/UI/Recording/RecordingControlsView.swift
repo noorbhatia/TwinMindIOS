@@ -19,24 +19,43 @@ struct RecordingView: View {
     @State private var titleInputText = ""
     
     var body: some View {
-        
-            
-        ZStack{
-            if !showingTitleInputAlert{
-                ZStack(alignment: .center) {
+        ZStack(alignment: .bottom) {
+            if !showingTitleInputAlert {
+                // Expandable Recording Container
+                ZStack(alignment: .bottom) {
                     Rectangle()
                         .ignoresSafeArea(edges: .bottom)
                         .foregroundStyle(.black)
-                        .frame(maxWidth: .infinity, maxHeight: 100)
+                        .frame(maxWidth: .infinity)
+                        .frame(maxHeight: audioManager.isRecording ? nil : 100)
                     
-                    RecordButton(isRecording: audioManager.isRecording) {
-                        toggleRecording()
-                    } stopAction: {
-                        stopRecordingAndShowTitleInput()
+                    VStack() {
+                        // Waveform - appears when recording
+                        if audioManager.isRecording {
+//                            Spacer()
+                            
+                            LiveWaveformView()
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 300)
+                                .transition(.asymmetric(
+                                    insertion: .move(edge: .top).combined(with: .opacity),
+                                    removal: .move(edge: .top).combined(with: .opacity)
+                                ))
+                            
+                        }
+                        
+                        // Record Button - always at bottom
+                        RecordButton(isRecording: audioManager.isRecording) {
+                            toggleRecording()
+                        } stopAction: {
+                            stopRecordingAndShowTitleInput()
+                        }
+                        .frame(width: 70, height: 70)
+
                     }
-                    .frame(width: 70, height: 70)
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
+                .animation(.spring(response: 0.6, dampingFraction: 0.8), value: audioManager.isRecording)
                 .animation(.easeInOut(duration: 0.3), value: showingTitleInputAlert)
             }
         }
