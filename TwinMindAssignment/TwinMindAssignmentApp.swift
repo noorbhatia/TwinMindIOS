@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import Speech
 
 @main
 struct TwinMindAssignmentApp: App {
@@ -24,58 +25,110 @@ struct TwinMindAssignmentApp: App {
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()
-    
-    @StateObject private var errorHandler = ErrorManager()
-    @State private var audioManager:AudioManager?
-    @State private var segmentationService: AudioSegmentationService?
-    @State private var transcriptionService: TranscriptionService?
-    @State private var localTranscriptionService: LocalTranscriptionService?
-    @Environment(\.modelContext) private var modelContext
 
     var body: some Scene {
         WindowGroup {
-            Group{
-                if let audioManager = audioManager, let segmentationService = segmentationService, let transcriptionService = transcriptionService,  let localTranscriptionService = localTranscriptionService{
-                    
-                    ContentView()
-                        .environmentObject(errorHandler)
-                        .environmentObject(audioManager)
-                        .environmentObject(segmentationService)
-                        .environmentObject(transcriptionService)
-                        .environmentObject(localTranscriptionService)
-                        .modelContainer(sharedModelContainer)
-                    
-                }else{
-                    ProgressView("Initializing..")
-                }
-            }
-            .onAppear {
-                if audioManager == nil {
-                    audioManager = AudioManager(
-                        modelContext: modelContext,
-                        errorManager: errorHandler
-                    )
-                }
-                if segmentationService == nil {
-                    segmentationService = AudioSegmentationService(
-                        modelContext: modelContext,
-                        errorManager: errorHandler
-                    )
-                }
-                if transcriptionService == nil {
-                    transcriptionService = TranscriptionService(
-                        modelContext: modelContext,
-                        errorManager: errorHandler
-                    )
-                }
-                if localTranscriptionService == nil {
-                    localTranscriptionService = LocalTranscriptionService(
-                        errorManager: errorHandler
-                    )
-                }
-            }
-            
+            ContentView()
+                .modelContainer(sharedModelContainer)
         }
+    }
+}
+
+// MARK: - Service Initialization View
+struct ServiceInitializationView: View {
+    @Environment(\.modelContext) private var modelContext
+    @StateObject private var errorHandler = ErrorManager()
+    @State private var audioManager: AudioManager?
+    @State private var segmentationService: AudioSegmentationService?
+    @State private var transcriptionService: TranscriptionService?
+    @State private var localTranscriptionService: LocalTranscriptionService?
+    @State private var servicesInitialized = false
+    
+    var body: some View {
+        Group {
+            if servicesInitialized,
+               let audioManager = audioManager,
+               let segmentationService = segmentationService,
+               let transcriptionService = transcriptionService,
+               let localTranscriptionService = localTranscriptionService {
+                
+                TabView {
+                    // Recording Tab
+                    NavigationView {
+                        RecordingControlsView()
+                    }
+                    .tabItem {
+                        Image(systemName: "mic.circle")
+                        Text("Record")
+                    }
+                    .tag(0)
+                    
+                    // Sessions Tab
+                    SessionListView()
+                    .tabItem {
+                        Image(systemName: "list.bullet")
+                        Text("Sessions")
+                    }
+                    .tag(1)
+                    
+                    // Settings Tab
+                    NavigationView {
+                        SettingsView()
+                    }
+                    .tabItem {
+                        Image(systemName: "gear")
+                        Text("Settings")
+                    }
+                    .tag(2)
+                }
+                .environmentObject(errorHandler)
+                .environmentObject(audioManager)
+                .environmentObject(segmentationService)
+                .environmentObject(transcriptionService)
+                .environmentObject(localTranscriptionService)
+                .errorAlert(errorHandler) {
+                    
+                }
+                
+            } else {
+                ProgressView("Initializing...")
+                    .onAppear {
+                        initializeServices()
+                    }
+            }
+        }
+    }
+    
+    private func initializeServices() {
+        guard !servicesInitialized else { return }
+        let status = SFSpeechRecognizer.authorizationStatus()
+        let localTranService =  LocalTranscriptionService(
+            errorManager: errorHandler,
+            status: status
+        )
+        localTranscriptionService = localTranService
         
+        let transService = TranscriptionService(
+            modelContext: modelContext,
+            errorManager: errorHandler,
+            localTranscriptionService: localTranService
+        )
+        transcriptionService = transService
+        // Initialize services with proper model context
+        audioManager = AudioManager(
+            modelContext: modelContext,
+            errorManager: errorHandler,
+            transcriptionService: transService
+            
+        )
+        segmentationService = AudioSegmentationService(
+            modelContext: modelContext,
+            errorManager: errorHandler
+        )
+        
+        
+        
+        
+        servicesInitialized = true
     }
 }

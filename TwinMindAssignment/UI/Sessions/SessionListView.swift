@@ -51,8 +51,9 @@ struct SessionListView: View {
         }
         .onAppear(perform: {
             print("Query result: \(recordingSessions.count) sessions")
-
-            
+            for session in recordingSessions {
+                print("Session: \(session.title), Start: \(session.startTime), Completed: \(session.isCompleted)")
+            }
         })
         .sheet(item: $selectedSession) { session in
             SessionDetailView(

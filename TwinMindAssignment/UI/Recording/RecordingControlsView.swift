@@ -276,6 +276,7 @@ extension RecordingControlsView{
     private func toggleRecording() {
         Task {
             if !localTranscriptionService.isAvailable || localTranscriptionService.permissionStatus != .authorized {
+                errorManager.reportError(.transcription(.speechRecognitionPermissionDenied), context: .init(component: "Speech", operation: "recognition"))
                 _ = await localTranscriptionService.requestSpeechRecognitionPermission()
                 return
                 

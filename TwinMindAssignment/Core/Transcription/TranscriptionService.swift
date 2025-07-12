@@ -59,7 +59,7 @@ final class TranscriptionService: ObservableObject {
     private var lastFailureTime: Date?
     
     // Local transcription services
-    private lazy var localTranscriptionService = LocalTranscriptionService()
+    private  var localTranscriptionService:LocalTranscriptionService
     private let network: NetworkHandlerProtocol
     
     // MARK: - Initialization
@@ -68,12 +68,14 @@ final class TranscriptionService: ObservableObject {
         config: TranscriptionConfig = .default,
         apiConfig: APIConfig = .default,
         network: NetworkHandlerProtocol = NetworkHandler.shared,
-        errorManager: ErrorManager? = nil
+        errorManager: ErrorManager? = nil,
+        localTranscriptionService: LocalTranscriptionService
     ) {
         self.modelContext = modelContext
         self.config = config
         self.network = network
         self.errorManager = errorManager
+        self.localTranscriptionService = localTranscriptionService
 
         // Setup network monitoring
         self.networkMonitor = NWPathMonitor()

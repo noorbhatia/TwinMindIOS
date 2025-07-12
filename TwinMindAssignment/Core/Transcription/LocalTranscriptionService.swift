@@ -9,13 +9,15 @@ final class LocalTranscriptionService: ObservableObject {
     // MARK: - Properties
     private let speechRecognizer: SFSpeechRecognizer?
     @Published private(set) var isAvailable = false
-    @Published private(set) var permissionStatus:SFSpeechRecognizerAuthorizationStatus = .notDetermined
+    @Published private(set) var permissionStatus:SFSpeechRecognizerAuthorizationStatus
     private let errorManager: ErrorManager?
     
     // MARK: - Initialization
-    init(locale: Locale = Locale.current, errorManager: ErrorManager? = nil) {
+    init(locale: Locale = Locale.current, errorManager: ErrorManager? = nil, status:SFSpeechRecognizerAuthorizationStatus) {
         self.speechRecognizer = SFSpeechRecognizer(locale: locale)
         self.errorManager = errorManager
+        self.permissionStatus = status
+        checkAvailability()
     }
     
     // MARK: - Public Methods
@@ -136,10 +138,7 @@ final class LocalTranscriptionService: ObservableObject {
         }
     }
     
-    /// Creates a transcription service for a specific locale
-    func createServiceForLocale(_ locale: Locale) -> LocalTranscriptionService {
-        return LocalTranscriptionService(locale: locale, errorManager: errorManager)
-    }
+   
     
     // MARK: - Private Methods
     

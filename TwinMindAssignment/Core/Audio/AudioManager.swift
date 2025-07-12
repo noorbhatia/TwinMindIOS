@@ -35,7 +35,7 @@ final class AudioManager: ObservableObject {
     private var recordingStartTime: Date?
     
     // MARK: - Initialization
-    init(modelContext: ModelContext, errorManager: ErrorManager) {
+    init(modelContext: ModelContext, errorManager: ErrorManager, transcriptionService:TranscriptionService) {
         // Store dependencies
         self.modelContext = modelContext
         self.errorManager = errorManager
@@ -43,7 +43,7 @@ final class AudioManager: ObservableObject {
         // Initialize core components
         self.audioSession = AudioSessionManager()
         
-        self.transcriptionService = TranscriptionService(modelContext: modelContext)
+        self.transcriptionService = transcriptionService
         self.audioRecorder = AudioRecorderEngine(
             audioSession: audioSession,
             transcriptionService: transcriptionService,

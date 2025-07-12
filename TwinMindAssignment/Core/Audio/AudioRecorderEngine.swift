@@ -393,6 +393,15 @@ final class AudioRecorderEngine: ObservableObject {
         
         currentSession = session
         modelContext.insert(session)
+        
+        // Save the session immediately to ensure it's persisted
+        do {
+            try modelContext.save()
+            print("Successfully created and saved new session: \(session.title)")
+        } catch {
+            print("Failed to save new session: \(error)")
+            reportError(.data(.saveOperationFailed), operation: "createNewSession")
+        }
     }
     
     /// Returns audio quality string based on configuration
