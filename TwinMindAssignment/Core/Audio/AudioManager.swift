@@ -8,7 +8,7 @@ import SwiftData
 final class AudioManager: ObservableObject {
     
     // MARK: - Published Properties
-    @Published var isRecording = false
+    @Published private(set) var isRecording = false
     @Published var isPaused = false
     @Published var currentRecordingDuration: TimeInterval = 0
     @Published var audioLevel: Float = 0.0

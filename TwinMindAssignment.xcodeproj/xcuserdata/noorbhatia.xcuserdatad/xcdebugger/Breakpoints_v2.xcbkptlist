@@ -7,65 +7,65 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "0F87D841-F2CA-48B1-99B0-F41E2FCAFC45"
-            shouldBeEnabled = "No"
+            uuid = "1317E178-3E97-4391-AFF2-FEC23856E122"
+            shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "TwinMindAssignment/Core/Transcription/LocalTranscriptionService.swift"
+            filePath = "TwinMindAssignment/Core/Audio/AudioManager.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "120"
-            endingLineNumber = "120"
-            landmarkName = "requestSpeechRecognitionPermission()"
+            startingLineNumber = "145"
+            endingLineNumber = "145"
+            landmarkName = "checkPermissionStatus()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "96073AC8-7A63-4DCA-BF14-4AC32240AE95"
+            uuid = "FDF6A8E5-9124-4870-B792-8D41703D0106"
             shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "TwinMindAssignment/TwinMindAssignmentApp.swift"
+            filePath = "TwinMindAssignment/Core/Audio/AudioSessionManager.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "105"
-            endingLineNumber = "105"
-            landmarkName = "initializeServices()"
+            startingLineNumber = "82"
+            endingLineNumber = "82"
+            landmarkName = "checkRecordPermission()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "C31FCB81-C698-4A5F-BC64-CFF6616F0807"
-            shouldBeEnabled = "No"
+            uuid = "D0D7A4FC-EA44-43F9-B97E-CD8D0B09A49C"
+            shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "TwinMindAssignment/UI/Recording/RecordingControlsView.swift"
+            filePath = "TwinMindAssignment/Core/Audio/AudioManager.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "43"
-            endingLineNumber = "43"
-            landmarkName = "body"
-            landmarkType = "24">
+            startingLineNumber = "85"
+            endingLineNumber = "85"
+            landmarkName = "startRecording()"
+            landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "F9A471FB-361C-4939-8985-4DA4D9ABFC8E"
-            shouldBeEnabled = "No"
+            uuid = "8A13CA54-5C4D-48AD-AFED-9318C1A3C363"
+            shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "TwinMindAssignment/UI/Recording/RecordingControlsView.swift"
+            filePath = "TwinMindAssignment/Core/Audio/AudioRecorderEngine.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "279"
-            endingLineNumber = "279"
-            landmarkName = "mainButtonColor"
-            landmarkType = "24">
+            startingLineNumber = "281"
+            endingLineNumber = "281"
+            landmarkName = "stopRecording()"
+            landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

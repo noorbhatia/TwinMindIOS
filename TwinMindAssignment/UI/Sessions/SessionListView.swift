@@ -15,10 +15,9 @@ struct SessionListView: View {
     @State private var sessionsBeingDeleted: Set<UUID> = []
     @StateObject var player = AudioPlayer()
     
-    
     //MARK: - Computed properties
     var filteredSessions: [Session] {
-        let sessions = recordingSessions.filter { !sessionsBeingDeleted.contains($0.id) }
+        let sessions = recordingSessions.filter { !sessionsBeingDeleted.contains($0.id) && $0.isCompleted}
         
         if searchText.isEmpty {
             return sessions.sorted { $0.startTime > $1.startTime }
@@ -62,6 +61,9 @@ struct SessionListView: View {
                 } else {
                     sessionsList
                 }
+                
+                Spacer()
+                RecordingView()
             }
             .navigationTitle("Sessions")
             .navigationBarTitleDisplayMode(.large)
@@ -90,6 +92,7 @@ struct SessionListView: View {
         } message: {
             Text("Are you sure you want to delete this recording session? This action cannot be undone.")
         }
+      
     }
     
     
@@ -166,6 +169,11 @@ struct SessionListView: View {
         }
     }
 }
+
+extension SessionListView{
+    
+}
+
 //MARK: - List Item View
 struct SessionRowView: View {
     let session: Session
@@ -241,3 +249,5 @@ extension DateFormatter {
         return formatter
     }()
 } 
+
+
