@@ -191,9 +191,11 @@ struct RecordingControlsView: View {
             
             // Stop Button
             if audioManager.isRecording {
-                Button(action: stopRecording) {
+                Button(action: {
+                    _ = audioManager.stopRecording()
+                }) {
                     Image(systemName: "stop.circle.fill")
-                        .font(.system(size: 44))
+                        .font(.system(size: 44)) 
                         .foregroundColor(.gray)
                 }
                 .disabled(!audioManager.isRecording)
@@ -313,55 +315,6 @@ extension RecordingControlsView{
                 audioManager.resumeRecording()
             } else {
                 audioManager.pauseRecording()
-            }
-        }
-    }
-    
-    private func stopRecording() {
-        let recordingURL = audioManager.stopRecording()
-        let metadata = audioManager.getRecordingMetadata()
-        
-        // Create and save RecordingSession to SwiftData
-        if let url = recordingURL, let startTime = metadata.startTime {
-            let config = metadata.configuration
-            let endTime = Date()
-            
-            // Get file size
-            let fileSize: Int64
-            if let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
-               let size = attributes[.size] as? Int64 {
-                fileSize = size
-            } else {
-                fileSize = 0
-            }
-            
-            // Create RecordingSession
-            let session = Session(
-                startTime: startTime,
-                sampleRate: config.sampleRate,
-                bitDepth: Int(config.bitDepth),
-                channels: Int(config.channels),
-                audioFormat: config.fileFormat.fileExtension.uppercased(),
-                audioQuality: getQualityName(for: config)
-            )
-            
-            // Complete the session with file information
-            session.complete(
-                endTime: endTime,
-                fileURL: url,
-                fileSize: fileSize,
-                wasInterrupted: false, // Could be enhanced to track interruptions
-                backgroundRecordingUsed: audioManager.isBackgroundRecordingEnabled
-            )
-            
-            // Save to SwiftData
-            modelContext.insert(session)
-            
-            do {
-                try modelContext.save()
-                print("Recording session saved: \(session.title)")
-            } catch {
-                print("Failed to save recording session: \(error)")
             }
         }
     }
