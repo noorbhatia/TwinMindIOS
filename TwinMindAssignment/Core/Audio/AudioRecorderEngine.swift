@@ -565,7 +565,7 @@ final class AudioRecorderEngine: ObservableObject {
     }
     
     private func setupNotificationObservers() {
-        // Handle audio session interruptions
+        
         NotificationCenter.default.publisher(for: .audioInterruptionBegan)
             .sink { [weak self] _ in
                 self?.handleAudioInterruption()
@@ -579,9 +579,9 @@ final class AudioRecorderEngine: ObservableObject {
             .store(in: &cancellables)
         
         // Handle audio route changes
-        NotificationCenter.default.publisher(for: .audioRouteChanged)
-            .sink { [weak self] _ in
-                self?.handleAudioRouteChange()
+        NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)
+            .sink { [weak self] n in
+                self?.handleAudioRouteChange(n)
             }
             .store(in: &cancellables)
     }
@@ -610,10 +610,49 @@ final class AudioRecorderEngine: ObservableObject {
         }
     }
     
-    private func handleAudioRouteChange() {
-        // Handle route changes during recording
-        // For now, continue recording with the new route
-        // Could be enhanced to notify user of route changes
+    private func handleAudioRouteChange(_ n:Notification) {
+        guard isRecording,
+              let raw = n.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
+              let reason = AVAudioSession.RouteChangeReason(rawValue: raw),
+              [.oldDeviceUnavailable, .newDeviceAvailable].contains(reason)
+        else { return }
+        
+         recoverAudioEngine()
+    }
+    
+    
+    /// Unified recovery logic: reset tap and restart engine.
+    private func recoverAudioEngine() {
+        
+
+        DispatchQueue.main.asyncAfter(deadline:  .now() + 0.1){
+            do{
+                if let currentURL = self.currentRecordingURL {
+                                self.handleFinishedSegment(currentURL)
+                            }
+                self.audioEngine.pause()
+                self.audioEngine.stop()
+                self.removeTapSafely()
+                self.audioEngine.reset()
+                
+                try self.setupAudioEngine()
+                try self.audioEngine.start()
+                self.isRecording = true
+                self.recordingState = .recording
+            }catch{
+                print("Recovery failed:", error)
+                self.recordingState = .error("Audio engine recovery failed")
+                            self.reportError(.audio(.audioEngineFailure), operation: "recoverAudioEngine")
+            }
+        }
+    }
+    private func removeTapSafely() {
+        let inputNode = audioEngine.inputNode
+        
+        // Check if there's actually a tap to remove
+        if inputNode.numberOfInputs > 0 {
+            inputNode.removeTap(onBus: 0)
+        }
     }
     
     private func cleanup() {

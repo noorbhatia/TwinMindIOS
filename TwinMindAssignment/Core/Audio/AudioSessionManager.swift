@@ -156,20 +156,7 @@ final class AudioSessionManager: ObservableObject {
         
         updateCurrentRoute()
         
-        // Handle specific route change scenarios
-        switch reason {
-        case .newDeviceAvailable:
-            NotificationCenter.default.post(name: .audioRouteChanged, object: ["reason": "deviceConnected"])
-            
-        case .oldDeviceUnavailable:
-            NotificationCenter.default.post(name: .audioRouteChanged, object: ["reason": "deviceDisconnected"])
-            
-        case .categoryChange:
-            NotificationCenter.default.post(name: .audioRouteChanged, object: ["reason": "categoryChange"])
-            
-        default:
-            NotificationCenter.default.post(name: .audioRouteChanged, object: ["reason": "other"])
-        }
+        NotificationCenter.default.post(name: .audioRouteChanged, object: reason)
     }
     
     private func updateCurrentRoute() {

@@ -7,64 +7,48 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "1317E178-3E97-4391-AFF2-FEC23856E122"
-            shouldBeEnabled = "Yes"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "TwinMindAssignment/Core/Audio/AudioManager.swift"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "145"
-            endingLineNumber = "145"
-            landmarkName = "checkPermissionStatus()"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "FDF6A8E5-9124-4870-B792-8D41703D0106"
+            uuid = "EF2585EA-75AE-40E6-A243-6281B1871BEF"
             shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "TwinMindAssignment/Core/Audio/AudioSessionManager.swift"
+            filePath = "TwinMindAssignment/Core/Audio/AudioRecorderEngine.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "82"
-            endingLineNumber = "82"
-            landmarkName = "checkRecordPermission()"
+            startingLineNumber = "584"
+            endingLineNumber = "584"
+            landmarkName = "setupNotificationObservers()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "D0D7A4FC-EA44-43F9-B97E-CD8D0B09A49C"
-            shouldBeEnabled = "Yes"
+            uuid = "B2FE32E5-8230-492B-85F0-FDF2BB1B3531"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "TwinMindAssignment/Core/Audio/AudioManager.swift"
+            filePath = "TwinMindAssignment/Core/Audio/AudioRecorderEngine.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "85"
-            endingLineNumber = "85"
-            landmarkName = "startRecording()"
+            startingLineNumber = "616"
+            endingLineNumber = "616"
+            landmarkName = "handleAudioRouteChange(_:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "8A13CA54-5C4D-48AD-AFED-9318C1A3C363"
+            uuid = "7194858B-476A-4F4F-9DC7-38F2B0E7EE27"
             shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "TwinMindAssignment/Core/Audio/AudioRecorderEngine.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "268"
-            endingLineNumber = "268"
-            landmarkName = "stopRecording()"
+            startingLineNumber = "627"
+            endingLineNumber = "627"
+            landmarkName = "recoverAudioEngine()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

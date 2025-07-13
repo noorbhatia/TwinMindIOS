@@ -1,4 +1,5 @@
 import Foundation
+import AVFAudio
 import SwiftUI
 import Combine
 import SwiftData
@@ -184,6 +185,7 @@ final class AudioManager: ObservableObject {
     }
     
     // MARK: - Private Methods
+
     
     private func setupBindings() {
         // Bind audio session properties
