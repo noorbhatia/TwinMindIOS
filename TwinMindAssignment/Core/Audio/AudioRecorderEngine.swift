@@ -77,18 +77,6 @@ struct AudioConfiguration {
     )
 }
 
-// MARK: - FFT Configuration Constants
-private enum FFTConstants {
-    /// Amount of frequency bins to keep after performing the FFT
-    static let sampleAmount: Int = 200
-    /// Reduce the number of plotted points for visualization
-    static let downsampleFactor = 8
-    /// Handle high spikes distortion in the waveform
-    static let magnitudeLimit: Float = 100
-    /// Buffer size for FFT processing
-    static let bufferSize = 8192
-}
-
 /// Core audio recording engine using AVAudioEngine for high-quality recording
 @MainActor
 final class AudioRecorderEngine: ObservableObject {
@@ -100,7 +88,6 @@ final class AudioRecorderEngine: ObservableObject {
     @Published var audioLevel: Float = 0.0
     @Published var audioSamples: [Float] = []
     
-    @Published var fftMagnitudes: [Float] = Array(repeating: 0, count: FFTConstants.sampleAmount)
     @Published var recordingState: RecordingState = .stopped
         
     // MARK: - Private Properties
@@ -511,8 +498,8 @@ final class AudioRecorderEngine: ObservableObject {
         audioSamples.append(normalized)
         
         // Keep only the last 100 samples for performance
-        if audioSamples.count > 300 {
-            audioSamples.removeFirst(audioSamples.count - 300)
+        if audioSamples.count > 50 {
+            audioSamples.removeFirst(audioSamples.count - 50)
         }
     }
     
@@ -548,7 +535,6 @@ final class AudioRecorderEngine: ObservableObject {
     private func stopAudioLevelMonitoring() {
         audioLevel = 0.0
         audioSamples.removeAll()
-        fftMagnitudes = Array(repeating: 0, count: FFTConstants.sampleAmount)
     }
     
     private func checkStorageSpace() throws {
