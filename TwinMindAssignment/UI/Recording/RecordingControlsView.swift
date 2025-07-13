@@ -24,6 +24,7 @@ struct RecordingView: View {
                 // Expandable Recording Container
                 ZStack(alignment: .bottom) {
                     Rectangle()
+                        .clipShape(.rect(cornerRadius: 12))
                         .ignoresSafeArea(edges: .bottom)
                         .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
@@ -37,12 +38,10 @@ struct RecordingView: View {
                             LiveWaveformView()
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 300)
-                                .transition(.asymmetric(
-                                    insertion: .move(edge: .top).combined(with: .opacity),
-                                    removal: .move(edge: .top).combined(with: .opacity)
-                                ))
+                                .animation(.easeOut, value: audioManager.recordingState)
+
                             
-                        }
+                        } 
                         
                         // Record Button - always at bottom
                         RecordButton(state: audioManager.recordingState) {
@@ -55,7 +54,7 @@ struct RecordingView: View {
                     }
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
-                .animation(.spring(response: 0.6, dampingFraction: 0.8), value: audioManager.recordingState == .recording)
+                .animation(.spring(response: 0.6, dampingFraction: 0.8), value: audioManager.recordingState)
                 .animation(.easeInOut(duration: 0.3), value: showingTitleInputAlert)
             }
         }
@@ -126,15 +125,15 @@ extension RecordingView{
         _ = audioManager.stopRecording()
         
         // Get the most recently completed session
-        Task {
-            if let session = getMostRecentCompletedSession() {
-                await MainActor.run {
-                    completedSession = session
-                    titleInputText = session.title
-                    showingTitleInputAlert = true
-                }
-            }
-        }
+//        Task {
+//            if let session = getMostRecentCompletedSession() {
+//                await MainActor.run {
+//                    completedSession = session
+//                    titleInputText = session.title
+//                    showingTitleInputAlert = true
+//                }
+//            }
+//        }
     }
     
     private func saveTitleFromAlert() {
