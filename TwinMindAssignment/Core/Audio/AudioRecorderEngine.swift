@@ -565,16 +565,10 @@ final class AudioRecorderEngine: ObservableObject {
     }
     
     private func setupNotificationObservers() {
-        
-        NotificationCenter.default.publisher(for: .audioInterruptionBegan)
-            .sink { [weak self] _ in
-                self?.handleAudioInterruption()
-            }
-            .store(in: &cancellables)
-        
-        NotificationCenter.default.publisher(for: .audioInterruptionEnded)
+ 
+        NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification)
             .sink { [weak self] notification in
-                self?.handleAudioInterruptionEnded(notification)
+                self?.handleAudioInterruption(notification)
             }
             .store(in: &cancellables)
         
@@ -593,21 +587,28 @@ final class AudioRecorderEngine: ObservableObject {
         }
     }
     
-    private func handleAudioInterruption() {
-        if isRecording && !isPaused {
-            pauseRecording()
-        }
-    }
-    
-    private func handleAudioInterruptionEnded(_ notification: Notification) {
-        guard let userInfo = notification.object as? [String: Any],
-              let shouldResume = userInfo["shouldResume"] as? Bool else {
-            return
+    private func handleAudioInterruption(_ notification: Notification) {
+        guard
+            let info = notification.userInfo,
+            let rawType = info[AVAudioSessionInterruptionTypeKey] as? UInt,
+            let type = AVAudioSession.InterruptionType(rawValue: rawType)
+        else { return }
+        switch type {
+        case .began:
+            if isRecording && !isPaused {
+                pauseRecording()
+            }
+        case .ended:
+            // Resume if possible
+            let optsRaw = info[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
+            let opts = AVAudioSession.InterruptionOptions(rawValue: optsRaw)
+            if opts.contains(.shouldResume) && isPaused && recordingState == .paused {
+                try? resumeRecording()
+            }
+        @unknown default:
+            break
         }
         
-        if shouldResume && isPaused && recordingState == .paused {
-            try? resumeRecording()
-        }
     }
     
     private func handleAudioRouteChange(_ n:Notification) {

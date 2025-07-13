@@ -7,49 +7,123 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "EF2585EA-75AE-40E6-A243-6281B1871BEF"
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "TwinMindAssignment/Core/Audio/AudioRecorderEngine.swift"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "584"
-            endingLineNumber = "584"
-            landmarkName = "setupNotificationObservers()"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "B2FE32E5-8230-492B-85F0-FDF2BB1B3531"
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "TwinMindAssignment/Core/Audio/AudioRecorderEngine.swift"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "616"
-            endingLineNumber = "616"
-            landmarkName = "handleAudioRouteChange(_:)"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
             uuid = "7194858B-476A-4F4F-9DC7-38F2B0E7EE27"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "TwinMindAssignment/Core/Audio/AudioRecorderEngine.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "628"
+            endingLineNumber = "628"
+            landmarkName = "recoverAudioEngine()"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "7194858B-476A-4F4F-9DC7-38F2B0E7EE27 - 38d5ecb5c484cfd8"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "TwinMindAssignment.AudioRecorderEngine.recoverAudioEngine() -&gt; ()"
+                  moduleName = "TwinMindAssignment.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/noorbhatia/Desktop/noobzik/TwinMindAssignment/TwinMindAssignment/Core/Audio/AudioRecorderEngine.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "628"
+                  endingLineNumber = "628">
+               </Location>
+               <Location
+                  uuid = "7194858B-476A-4F4F-9DC7-38F2B0E7EE27 - abe2a798c5478157"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #1 @Swift.MainActor @Sendable () -&gt; () in TwinMindAssignment.AudioRecorderEngine.recoverAudioEngine() -&gt; ()"
+                  moduleName = "TwinMindAssignment.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/noorbhatia/Desktop/noobzik/TwinMindAssignment/TwinMindAssignment/Core/Audio/AudioRecorderEngine.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "628"
+                  endingLineNumber = "628">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "FB25C402-1F85-42AA-AEA7-7A14669393AA"
             shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "TwinMindAssignment/Core/Audio/AudioRecorderEngine.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "627"
-            endingLineNumber = "627"
-            landmarkName = "recoverAudioEngine()"
+            startingLineNumber = "585"
+            endingLineNumber = "585"
+            landmarkName = "handleEngineStop()"
             landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "9EAE0B24-536E-43F8-9D41-C5E22E406D15"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "TwinMindAssignment/Core/Audio/AudioRecorderEngine.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "559"
+            endingLineNumber = "559"
+            landmarkName = "setupAudioEngineObservers()"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "9EAE0B24-536E-43F8-9D41-C5E22E406D15 - bc98451e9019f29c"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #1 (Swift.Bool) -&gt; () in TwinMindAssignment.AudioRecorderEngine.setupAudioEngineObservers() -&gt; ()"
+                  moduleName = "TwinMindAssignment.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/noorbhatia/Desktop/noobzik/TwinMindAssignment/TwinMindAssignment/Core/Audio/AudioRecorderEngine.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "559"
+                  endingLineNumber = "559">
+               </Location>
+               <Location
+                  uuid = "9EAE0B24-536E-43F8-9D41-C5E22E406D15 - da67bcd3ee768642"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #1 @Swift.MainActor () async -&gt; Swift.Optional&lt;()&gt; in closure #1 (Swift.Bool) -&gt; () in TwinMindAssignment.AudioRecorderEngine.setupAudioEngineObservers() -&gt; ()"
+                  moduleName = "TwinMindAssignment.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/noorbhatia/Desktop/noobzik/TwinMindAssignment/TwinMindAssignment/Core/Audio/AudioRecorderEngine.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "556"
+                  endingLineNumber = "556">
+               </Location>
+               <Location
+                  uuid = "9EAE0B24-536E-43F8-9D41-C5E22E406D15 - ec4790ec962e20b5"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "(1) suspend resume partial function for closure #1 @Swift.MainActor () async -&gt; Swift.Optional&lt;()&gt; in closure #1 (Swift.Bool) -&gt; () in TwinMindAssignment.AudioRecorderEngine.setupAudioEngineObservers() -&gt; ()"
+                  moduleName = "TwinMindAssignment.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/noorbhatia/Desktop/noobzik/TwinMindAssignment/TwinMindAssignment/Core/Audio/AudioRecorderEngine.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "556"
+                  endingLineNumber = "556">
+               </Location>
+            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>
