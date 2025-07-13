@@ -214,8 +214,8 @@ struct SessionRowView: View {
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         }
-                        
-                     
+                    transcriptionStatusLabel(for: session)
+                    
                     
                     // Transcription preview
                     if !session.fullTranscriptionText.isEmpty {
@@ -234,6 +234,27 @@ struct SessionRowView: View {
         }
         .buttonStyle(.plain)
         
+    }
+    @ViewBuilder
+    func transcriptionStatusLabel(for session: Session) -> some View {
+        let (text, color): (String, Color) = {
+            if session.isTranscriptionCompleted {
+                return ("Transcribed", .green)
+            } else if session.isTranscriptionFailed {
+                return ("Failed", .red)
+            } else {
+                return ("Pending", .yellow)
+            }
+        }()
+
+        Text(text)
+            .font(.footnote)
+            .bold()
+            .foregroundColor(color)
+            .padding(.vertical, 4)
+            .padding(.horizontal, 6)
+            .background(color.tertiary)
+            .clipShape(.rect(cornerRadius: 4))
     }
     
     

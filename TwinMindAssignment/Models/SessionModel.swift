@@ -68,7 +68,19 @@ final class Session {
         guard totalTranscriptionsCount > 0 else { return 0.0 }
         return Double(completedTranscriptionsCount) / Double(totalTranscriptionsCount)
     }
-    
+    var isTranscriptionCompleted:Bool{
+        guard totalTranscriptionsCount > 0 else { return false}
+        return segments.allSatisfy { $0.transcription?.isCompleted == true }
+    }
+    var isTranscriptionFailed: Bool {
+        guard totalTranscriptionsCount > 0 else { return false }
+        
+        return segments.contains { segment in
+            let hasFailureReason = !(segment.lastFailureReason?.isEmpty ?? true)
+            let isIncomplete = segment.transcription?.isCompleted == false
+            return hasFailureReason && isIncomplete
+        }
+    }
     var fullTranscriptionText: String {
         segments
             .compactMap { $0.transcription?.text }

@@ -41,7 +41,7 @@ struct RecordingView: View {
                                 .animation(.easeOut, value: audioManager.recordingState)
 
                             
-                        } 
+                        }
                         
                         // Record Button - always at bottom
                         RecordButton(state: audioManager.recordingState) {
