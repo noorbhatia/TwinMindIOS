@@ -12,7 +12,6 @@ final class AudioManager: ObservableObject {
     @Published var currentRecordingDuration: TimeInterval = 0
     @Published var audioLevel: Float = 0.0
     @Published var audioSamples: [Float] = []
-    @Published var fftMagnitudes: [Float] = []
     @Published var recordingState: RecordingState = .stopped
     @Published var isMicPermissionGranted = false
     @Published var currentAudioRoute = "Unknown"

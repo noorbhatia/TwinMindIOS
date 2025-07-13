@@ -45,6 +45,7 @@ cd TwinMindAssignment
 
 ### 3. Set Up Keychain (Optional)
 For secure API key storage, the app uses Keychain Services. Keys are automatically stored securely on first run.
+Add your OpenAI API key from the settings to use Whisper
 
 ### 4. Configure App Permissions
 The app requires microphone access. Ensure the following is in `Info.plist`:
