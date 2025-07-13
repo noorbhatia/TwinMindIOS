@@ -306,6 +306,7 @@ final class TranscriptionService: ObservableObject {
     
     private func shouldUseNetworkTranscription() -> Bool {
         // Don't use network if no connectivity
+        guard let key = KeychainHandler.shared.get(.kOpenAIKey), !key.isEmpty else {return false}
         guard networkStatus == .satisfied else { return false }
         
         // Don't use network if too many consecutive failures
