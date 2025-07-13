@@ -87,7 +87,6 @@ final class AudioRecorderEngine: ObservableObject {
     @Published var currentRecordingDuration: TimeInterval = 0
     @Published var audioLevel: Float = 0.0
     @Published var audioSamples: [Float] = []
-    
     @Published var recordingState: RecordingState = .stopped
         
     // MARK: - Private Properties
@@ -106,17 +105,17 @@ final class AudioRecorderEngine: ObservableObject {
     private let modelContext: ModelContext
     private let errorManager: ErrorManager
     
-    // Current session tracking
+
     private var currentSession: Session?
     
-    // Audio configuration
+    
     private var audioConfiguration: AudioConfiguration = .high
     
-    // File management
+    
     private let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
     private var currentRecordingURL: URL?
     
-    // Cancellables for Combine
+    
     private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Initialization
@@ -137,6 +136,37 @@ final class AudioRecorderEngine: ObservableObject {
     
     deinit {
         
+    }
+    
+    // MARK: - Observers
+    private func setupAudioEngineObservers() {
+        
+        audioEngine.publisher(for: \.isRunning)
+            .sink { [weak self] isRunning in
+                if !isRunning && self?.isRecording == true {
+                    Task { @MainActor in
+                        self?.handleEngineStop()
+                    }
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func setupNotificationObservers() {
+ 
+        /// Handles interruptions (phone call, notification, etc.)
+        NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification)
+            .sink { [weak self] notification in
+                self?.handleAudioInterruption(notification)
+            }
+            .store(in: &cancellables)
+        
+        /// Handles route changes (plug, unplug, airpods)
+        NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)
+            .sink { [weak self] n in
+                self?.handleAudioRouteChange(n)
+            }
+            .store(in: &cancellables)
     }
     
     // MARK: - Public Methods
@@ -550,35 +580,6 @@ final class AudioRecorderEngine: ObservableObject {
         }
     }
     
-    private func setupAudioEngineObservers() {
-        // Listen to audio engine configuration changes
-        audioEngine.publisher(for: \.isRunning)
-            .sink { [weak self] isRunning in
-                if !isRunning && self?.isRecording == true {
-                    // Handle unexpected engine stop
-                    Task { @MainActor in
-                        self?.handleEngineStop()
-                    }
-                }
-            }
-            .store(in: &cancellables)
-    }
-    
-    private func setupNotificationObservers() {
- 
-        NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification)
-            .sink { [weak self] notification in
-                self?.handleAudioInterruption(notification)
-            }
-            .store(in: &cancellables)
-        
-        // Handle audio route changes
-        NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)
-            .sink { [weak self] n in
-                self?.handleAudioRouteChange(n)
-            }
-            .store(in: &cancellables)
-    }
     
     private func handleEngineStop() {
         if isRecording && !isPaused {
@@ -624,8 +625,6 @@ final class AudioRecorderEngine: ObservableObject {
     
     /// Unified recovery logic: reset tap and restart engine.
     private func recoverAudioEngine() {
-        
-
         DispatchQueue.main.asyncAfter(deadline:  .now() + 0.1){
             do{
                 if let currentURL = self.currentRecordingURL {
