@@ -27,11 +27,11 @@ struct RecordingView: View {
                         .ignoresSafeArea(edges: .bottom)
                         .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
-                        .frame(maxHeight: audioManager.isRecording ? nil : 100)
+                        .frame(maxHeight: audioManager.recordingState == .recording ? nil : 100)
                     
                     VStack() {
                         // Waveform - appears when recording
-                        if audioManager.isRecording {
+                        if audioManager.recordingState == .recording {
 //                            Spacer()
                             
                             LiveWaveformView()
@@ -45,7 +45,7 @@ struct RecordingView: View {
                         }
                         
                         // Record Button - always at bottom
-                        RecordButton(isRecording: audioManager.isRecording) {
+                        RecordButton(state: audioManager.recordingState) {
                             toggleRecording()
                         } stopAction: {
                             stopRecordingAndShowTitleInput()
@@ -55,7 +55,7 @@ struct RecordingView: View {
                     }
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
-                .animation(.spring(response: 0.6, dampingFraction: 0.8), value: audioManager.isRecording)
+                .animation(.spring(response: 0.6, dampingFraction: 0.8), value: audioManager.recordingState == .recording)
                 .animation(.easeInOut(duration: 0.3), value: showingTitleInputAlert)
             }
         }
@@ -99,14 +99,20 @@ extension RecordingView{
                 return
                 
             }else{
-                if !audioManager.isRecording {
-                    
-                     await audioManager.startRecording()
-                } else if audioManager.isPaused {
-                    audioManager.resumeRecording()
-                } else {
+                switch audioManager.recordingState {
+                case .stopped:
+                    await audioManager.startRecording()
+                    break
+                case .recording:
                     audioManager.pauseRecording()
+                    break
+                case .paused:
+                    audioManager.resumeRecording()
+                    break
+                case .error(let string):
+                    break
                 }
+                    
             }
             
         }
@@ -170,7 +176,7 @@ extension RecordingView{
 // MARK: - Record Button
 
 struct RecordButton: View {
-    let isRecording: Bool
+    let state: RecordingState
     let buttonColor: Color
     let borderColor: Color
     let animation: Animation
@@ -178,14 +184,14 @@ struct RecordButton: View {
     let stopAction: () -> Void
     
     init(
-        isRecording: Bool,
+        state: RecordingState,
         buttonColor: Color = .red,
         borderColor: Color = .white,
         animation: Animation = .easeInOut(duration: 0.25),
         startAction: @escaping () -> Void,
         stopAction: @escaping () -> Void
     ) {
-        self.isRecording = isRecording
+        self.state = state
         self.buttonColor = buttonColor
         self.borderColor = borderColor
         self.animation = animation
@@ -199,15 +205,21 @@ struct RecordButton: View {
                 let minDimension = min(geometry.size.width, geometry.size.height)
                 
                 Button {
-                    if isRecording {
-                        stopAction()
-                    } else {
+                    switch state {
+                    case .stopped:
                         startAction()
+                    case .recording:
+                        stopAction()
+                    case .paused:
+                        break
+                    case .error(let string):
+                        break
                     }
+                    
                 } label: {
-                    RecordButtonShape(isRecording: isRecording)
+                    RecordButtonShape(isRecording: state == .recording)
                         .fill(buttonColor)
-                        .animation(animation, value: isRecording)
+                        .animation(animation, value: state == .recording)
                 }
                 
                 Circle()

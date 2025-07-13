@@ -82,8 +82,6 @@ struct AudioConfiguration {
 final class AudioRecorderEngine: ObservableObject {
     
     // MARK: - Published Properties
-    @Published var isRecording = false
-    @Published var isPaused = false
     @Published var currentRecordingDuration: TimeInterval = 0
     @Published var audioLevel: Float = 0.0
     @Published var audioSamples: [Float] = []
@@ -143,7 +141,7 @@ final class AudioRecorderEngine: ObservableObject {
         
         audioEngine.publisher(for: \.isRunning)
             .sink { [weak self] isRunning in
-                if !isRunning && self?.isRecording == true {
+                if !isRunning && self?.recordingState == .recording {
                     Task { @MainActor in
                         self?.handleEngineStop()
                     }
@@ -232,8 +230,6 @@ final class AudioRecorderEngine: ObservableObject {
         // Start recording
         do {
             try audioEngine.start()
-            isRecording = true
-            isPaused = false
             recordingState = .recording
             recordingStartTime = Date()
             totalPausedDuration = 0
@@ -250,24 +246,22 @@ final class AudioRecorderEngine: ObservableObject {
     
     /// Pauses audio recording
     func pauseRecording() {
-        guard isRecording && !isPaused else { return }
+        guard recordingState == .recording else { return }
         segmentTimer?.suspend()
         
         audioEngine.pause()
-        isPaused = true
-        pauseStartTime = Date()
         recordingState = .paused
+        pauseStartTime = Date()
         
         stopRecordingTimer()
     }
     
     /// Resumes audio recording
     func resumeRecording() throws {
-        guard isPaused else { return }
+        guard recordingState == .paused else { return }
         segmentTimer?.resume()
         do {
             try audioEngine.start()
-            isPaused = false
             recordingState = .recording
             
             // Calculate paused duration
@@ -287,14 +281,12 @@ final class AudioRecorderEngine: ObservableObject {
     
     /// Stops audio recording and returns the file URL
     func stopRecording() -> URL? {
-        guard isRecording else { return nil }
+        guard recordingState == .recording else { return nil }
         segmentTimer?.cancel()
         segmentTimer = nil
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
         
-        isRecording = false
-        isPaused = false
         recordingState = .stopped
         
         stopRecordingTimer()
@@ -349,7 +341,7 @@ final class AudioRecorderEngine: ObservableObject {
     
     /// rotate segment after timer
     private func rotateAudioSegment() {
-        guard isRecording, let oldURL = currentRecordingURL else { return }
+        guard recordingState == .recording, let oldURL = currentRecordingURL else { return }
         handleFinishedSegment(oldURL)
         
         //Create new recording file
@@ -547,7 +539,7 @@ final class AudioRecorderEngine: ObservableObject {
     private func updateRecordingDuration() {
         guard let startTime = recordingStartTime else { return }
         
-        if isPaused {
+        if recordingState == .paused {
             // Duration up to when pause started
             if let pauseStart = pauseStartTime {
                 currentRecordingDuration = pauseStart.timeIntervalSince(startTime) - totalPausedDuration
@@ -582,7 +574,7 @@ final class AudioRecorderEngine: ObservableObject {
     
     
     private func handleEngineStop() {
-        if isRecording && !isPaused {
+        if recordingState == .recording {
             recordingState = .error("Audio engine stopped unexpectedly")
             reportError(.audio(.audioEngineFailure), operation: "handleEngineStop")
         }
@@ -596,14 +588,14 @@ final class AudioRecorderEngine: ObservableObject {
         else { return }
         switch type {
         case .began:
-            if isRecording && !isPaused {
+            if recordingState == .recording {
                 pauseRecording()
             }
         case .ended:
             // Resume if possible
             let optsRaw = info[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
             let opts = AVAudioSession.InterruptionOptions(rawValue: optsRaw)
-            if opts.contains(.shouldResume) && isPaused && recordingState == .paused {
+            if opts.contains(.shouldResume) && recordingState == .paused {
                 try? resumeRecording()
             }
         @unknown default:
@@ -613,7 +605,7 @@ final class AudioRecorderEngine: ObservableObject {
     }
     
     private func handleAudioRouteChange(_ n:Notification) {
-        guard isRecording,
+        guard recordingState == .recording,
               let raw = n.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
               let reason = AVAudioSession.RouteChangeReason(rawValue: raw),
               [.oldDeviceUnavailable, .newDeviceAvailable].contains(reason)
@@ -637,7 +629,6 @@ final class AudioRecorderEngine: ObservableObject {
                 
                 try self.setupAudioEngine()
                 try self.audioEngine.start()
-                self.isRecording = true
                 self.recordingState = .recording
             }catch{
                 print("Recovery failed:", error)

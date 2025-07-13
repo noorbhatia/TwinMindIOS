@@ -9,8 +9,6 @@ import SwiftData
 final class AudioManager: ObservableObject {
     
     // MARK: - Published Properties
-    @Published private(set) var isRecording = false
-    @Published var isPaused = false
     @Published var currentRecordingDuration: TimeInterval = 0
     @Published var audioLevel: Float = 0.0
     @Published var audioSamples: [Float] = []
@@ -198,14 +196,6 @@ final class AudioManager: ObservableObject {
             .store(in: &cancellables)
         
         // Bind audio recorder properties
-        audioRecorder.$isRecording
-            .assign(to: \.isRecording, on: self)
-            .store(in: &cancellables)
-        
-        audioRecorder.$isPaused
-            .assign(to: \.isPaused, on: self)
-            .store(in: &cancellables)
-        
         audioRecorder.$currentRecordingDuration
             .assign(to: \.currentRecordingDuration, on: self)
             .store(in: &cancellables)
@@ -305,7 +295,7 @@ final class AudioManager: ObservableObject {
     
     private func handleAppEnteredBackground() {
         // If recording, request background task
-        if isRecording && !isBackgroundRecordingEnabled {
+        if recordingState == .recording && !isBackgroundRecordingEnabled {
             let success = backgroundTaskManager.requestBackgroundRecording()
             if !success {
                 print("Failed to start background recording task")
@@ -327,7 +317,7 @@ final class AudioManager: ObservableObject {
         // 2. Stop recording gracefully
         // 3. Show a notification to the user
         
-        if isRecording {
+        if recordingState == .recording {
             // Optionally stop recording to save what we have
             // _ = stopRecording()
         }

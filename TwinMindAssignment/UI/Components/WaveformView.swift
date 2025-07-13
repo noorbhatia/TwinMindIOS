@@ -39,10 +39,12 @@ struct LiveWaveformView: View {
         .onAppear {
             setupInitialHeights()
         }
-        .onReceive(audioManager.$isRecording) { isRecording in
-            if isRecording {
+        .onReceive(audioManager.$recordingState) { state in
+            switch state {
+            case .recording:
                 startAnimation()
-            } else {
+                break
+            default:
                 stopAnimation()
             }
         }
@@ -82,7 +84,7 @@ struct LiveWaveformView: View {
     }
     
     private func updateWaveform(with audioLevel: Float) {
-        guard audioManager.isRecording else { return }
+        guard audioManager.recordingState == .recording else { return }
         
         // Throttle updates to prevent vibrating effect
         let currentTime = Date()

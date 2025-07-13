@@ -16,7 +16,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "586"
             endingLineNumber = "586"
-            landmarkName = "handleEngineStop()"
+            landmarkName = "handleAudioInterruption(_:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
