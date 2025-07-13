@@ -216,10 +216,6 @@ final class AudioManager: ObservableObject {
             .assign(to: \.audioSamples, on: self)
             .store(in: &cancellables)
         
-        audioRecorder.$fftMagnitudes
-            .assign(to: \.fftMagnitudes, on: self)
-            .store(in: &cancellables)
-        
         audioRecorder.$recordingState
             .assign(to: \.recordingState, on: self)
             .store(in: &cancellables)

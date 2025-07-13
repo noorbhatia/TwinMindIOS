@@ -9,24 +9,26 @@ struct SettingsView: View {
     @State private var showingPermissionAlert = false
     
     var body: some View {
-        Form {
-            // Audio Settings Section
-            audioSettingsSection
-            
-            // Transcription Settings Section
-            transcriptionSettingsSection
-            
-            // System Status Section
-            systemStatusSection
-            
-            // Storage Management Section
-            storageManagementSection
-            
-            // About Section
-            aboutSection
+        NavigationView{
+            Form {
+                // Audio Settings Section
+                audioSettingsSection
+                
+                // Transcription Settings Section
+                transcriptionSettingsSection
+                
+                // System Status Section
+                systemStatusSection
+                
+                // Storage Management Section
+                storageManagementSection
+                
+                // About Section
+                aboutSection
+            }
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
         }
-        .navigationTitle("Settings")
-        .navigationBarTitleDisplayMode(.large)
         .alert("OpenAI API Key", isPresented: $showingAPIKeyAlert) {
             TextField("API Key", text: $apiKey)
             Button("Save") {

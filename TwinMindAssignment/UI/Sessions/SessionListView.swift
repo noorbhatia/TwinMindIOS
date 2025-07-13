@@ -11,6 +11,7 @@ struct SessionListView: View {
     @State private var searchText = ""
     @State private var selectedSession: Session?
     @State private var showingDeleteAlert = false
+    @State private var isShowingSettings = false
     @State private var sessionToDelete: Session?
     @State private var sessionsBeingDeleted: Set<UUID> = []
     @StateObject var player = AudioPlayer()
@@ -70,17 +71,24 @@ struct SessionListView: View {
             .searchable(text: $searchText, prompt: "Search sessions or transcriptions")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
+                    Button {
+                        isShowingSettings.toggle()
+                    } label: {
+                        Image(systemName: "gear")
+                    }
+
                 }
             }
         }
         
         .sheet(item: $selectedSession) { session in
             SessionDetailView(
-
                 session: session,
                 player: player
             )
+        }
+        .sheet(isPresented: $isShowingSettings){
+            SettingsView()
         }
         .alert("Delete Session", isPresented: $showingDeleteAlert) {
             Button("Delete", role: .destructive) {
@@ -225,15 +233,6 @@ struct SessionRowView: View {
             
         }
         .buttonStyle(.plain)
-        .contextMenu {
-            Button(action: onTap) {
-                Label("View Details", systemImage: "eye")
-            }
-            
-            Button(role: .destructive, action: onDelete) {
-                Label("Delete", systemImage: "trash")
-            }
-        }
         
     }
     
