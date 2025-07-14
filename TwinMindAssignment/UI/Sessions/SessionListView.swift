@@ -14,6 +14,8 @@ struct SessionListView: View {
     @State private var isShowingSettings = false
     @State private var sessionToDelete: Session?
     @State private var sessionsBeingDeleted: Set<UUID> = []
+    @State private var queuedSessionIDs: Set<UUID> = []
+    
     @StateObject var player = AudioPlayer()
     
     //MARK: - Computed properties
@@ -27,6 +29,25 @@ struct SessionListView: View {
                 session.title.localizedCaseInsensitiveContains(searchText) ||
                 session.fullTranscriptionText.localizedCaseInsensitiveContains(searchText)
             }.sorted { $0.startTime > $1.startTime }
+        }
+    }
+    
+    var pendingTranscriptionSessions: [Session] {
+        recordingSessions
+            .filter { session in
+                session.isCompleted && !session.isTranscriptionCompleted
+            }
+            .sorted { $0.startTime > $1.startTime }
+    }
+    
+    private var transcriptionMethodText: String {
+        switch transcriptionService.currentTranscriptionMethod {
+        case .whisperAPI:
+            return "Transcribing with Whisper..."
+        case .local:
+            return "Transcribing locally..."
+        case .unknown:
+            return "Transcribing..."
         }
     }
     
@@ -70,15 +91,30 @@ struct SessionListView: View {
             .navigationBarTitleDisplayMode(.large)
             .searchable(text: $searchText, prompt: "Search sessions or transcriptions")
             .toolbar {
+                if transcriptionService.isTranscribing {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        HStack(spacing: 4) {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                                .frame(width: 12, height: 12)
+                            Text(transcriptionMethodText)
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         isShowingSettings.toggle()
                     } label: {
                         Image(systemName: "gear")
                     }
-
                 }
             }
+        }
+        .onChange(of: recordingSessions) { _, _ in
+            queueNewSessions(pendingTranscriptionSessions)
         }
         
         .sheet(item: $selectedSession) { session in
@@ -152,7 +188,7 @@ struct SessionListView: View {
     
     private func deleteSession(_ session: Session) {
         // First, mark the session as being deleted to trigger smooth animation
-        withAnimation(.easeInOut(duration: 0.3)) {
+        _ = withAnimation(.easeInOut(duration: 0.3)) {
             sessionsBeingDeleted.insert(session.id)
         }
         
@@ -169,11 +205,27 @@ struct SessionListView: View {
                 sessionsBeingDeleted.remove(session.id)
             } catch {
                 // If deletion fails, restore the session in the UI
-                withAnimation {
+                _ = withAnimation {
                     sessionsBeingDeleted.remove(session.id)
                 }
                 print("Failed to delete session: \(error.localizedDescription)")
             }
+        }
+    }
+    
+    // MARK: - Transcription Queue Management
+    
+    private func queueNewSessions(_ sessions: [Session]) {
+        let unqueuedSessions = sessions.filter { !queuedSessionIDs.contains($0.id) }
+        guard !unqueuedSessions.isEmpty else { return }
+        
+        Task {
+            
+            await transcriptionService.queueSessionsBatched(unqueuedSessions)
+            queuedSessionIDs.formUnion(unqueuedSessions.map(\.id))
+            
+            // Reset transcription method when done
+            transcriptionService.currentTranscriptionMethod = .unknown
         }
     }
 }

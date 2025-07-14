@@ -60,8 +60,14 @@ final class LocalTranscriptionService: ObservableObject {
         
         // Perform recognition
         return try await withCheckedThrowingContinuation { continuation in
-            speechRecognizer.recognitionTask(with: request) { [weak self] result, error in
+            var hasResumed = false
+            var recognitionTask: SFSpeechRecognitionTask?
+            
+            recognitionTask = speechRecognizer.recognitionTask(with: request) { [weak self] result, error in
+                guard !hasResumed else { return }
+                
                 if let error = error {
+                    hasResumed = true
                     self?.reportError(.transcription(.transcriptionFailed), operation: "transcribe")
                     continuation.resume(throwing: NSError(domain: "LocalTranscriptionError", code: 5, userInfo: [NSLocalizedDescriptionKey: "Recognition failed: \(error.localizedDescription)"]))
                     return
@@ -71,6 +77,7 @@ final class LocalTranscriptionService: ObservableObject {
                     return
                 }
                 
+                hasResumed = true
                 let processingDuration = Date().timeIntervalSince(startTime)
                 
                 // Create transcription

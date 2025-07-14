@@ -20,5 +20,67 @@
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "819C8BE1-FD3B-4381-BB7C-F0D20A0F0203"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "TwinMindAssignment/UI/Sessions/SessionListView.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "207"
+            endingLineNumber = "207"
+            landmarkName = "deleteSession(_:)"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "819C8BE1-FD3B-4381-BB7C-F0D20A0F0203 - 3b5f7c9f85193402"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #2 @Swift.MainActor () -&gt; () in TwinMindAssignment.SessionListView.deleteSession(TwinMindAssignment.Session) -&gt; ()"
+                  moduleName = "TwinMindAssignment.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/noorbhatia/Desktop/noobzik/TwinMindAssignment/TwinMindAssignment/UI/Sessions/SessionListView.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "208"
+                  endingLineNumber = "208">
+               </Location>
+               <Location
+                  uuid = "819C8BE1-FD3B-4381-BB7C-F0D20A0F0203 - eca81fc72015fd5a"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #2 () -&gt; Swift.Optional&lt;Foundation.UUID&gt; in closure #2 @Swift.MainActor () -&gt; () in TwinMindAssignment.SessionListView.deleteSession(TwinMindAssignment.Session) -&gt; ()"
+                  moduleName = "TwinMindAssignment.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/noorbhatia/Desktop/noobzik/TwinMindAssignment/TwinMindAssignment/UI/Sessions/SessionListView.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "208"
+                  endingLineNumber = "208">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "0C56A8FE-D8A4-44B4-A326-5AB9FBC3E92F"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "TwinMindAssignment/UI/Sessions/SessionListView.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "205"
+            endingLineNumber = "205"
+            landmarkName = "deleteSession(_:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
    </Breakpoints>
 </Bucket>

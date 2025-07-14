@@ -1,6 +1,14 @@
 import Foundation
 import SwiftData
 import Network
+import UIKit
+
+/// Enum representing the current transcription method being used
+enum TranscriptionMethod {
+    case whisperAPI
+    case local
+    case unknown
+}
 
 /// Service responsible for transcribing audio segments using various transcription providers
 @MainActor
@@ -45,6 +53,7 @@ final class TranscriptionService: ObservableObject {
     @Published var activeTranscriptions: Set<UUID> = []
     @Published var failedTranscriptions: Set<UUID> = []
     @Published var networkStatus: NWPath.Status = .satisfied
+    @Published var currentTranscriptionMethod: TranscriptionMethod = .unknown
     
     // MARK: - Private Properties
     private let modelContext: ModelContext
@@ -61,6 +70,9 @@ final class TranscriptionService: ObservableObject {
     // Local transcription services
     private  var localTranscriptionService:LocalTranscriptionService
     private let network: NetworkHandlerProtocol
+    
+    // Background task management
+    private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
     
     // MARK: - Initialization
     init(
@@ -149,6 +161,55 @@ final class TranscriptionService: ObservableObject {
         }
     }
     
+    /// Queues multiple sessions for transcription in batches
+    func queueSessionsBatched(_ sessions: [Session], batchSize: Int = 3) async {
+        guard !sessions.isEmpty else { return }
+        
+        // Start background task to continue processing if app goes to background
+        startBackgroundTask()
+        
+        defer {
+            // End background task when done
+            endBackgroundTask()
+        }
+        
+        // Process sessions in batches to avoid overwhelming the system
+        for batchStart in stride(from: 0, to: sessions.count, by: batchSize) {
+            let batchEnd = min(batchStart + batchSize, sessions.count)
+            let batch = Array(sessions[batchStart..<batchEnd])
+            
+            // Process current batch concurrently
+            await withTaskGroup(of: Void.self) { group in
+                for session in batch {
+                    group.addTask {
+                        await self.transcribeSession(session)
+                    }
+                }
+            }
+            
+            // Small delay between batches to prevent system overload
+            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        }
+    }
+    
+    // MARK: - Background Task Management
+    
+    private func startBackgroundTask() {
+        endBackgroundTask() // End any existing background task
+        
+        backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "TranscriptionQueue") {
+            // Background task is about to expire
+            self.endBackgroundTask()
+        }
+    }
+    
+    private func endBackgroundTask() {
+        if backgroundTaskID != .invalid {
+            UIApplication.shared.endBackgroundTask(backgroundTaskID)
+            backgroundTaskID = .invalid
+        }
+    }
+    
     // MARK: - Private Methods
     
     private func reportError(_ error: ErrorManager.AppError, operation: String) {
@@ -196,6 +257,13 @@ final class TranscriptionService: ObservableObject {
         }
         
         var lastError: Error?
+        
+        // Determine and set current transcription method
+        if shouldUseNetworkTranscription() {
+            currentTranscriptionMethod = .whisperAPI
+        } else {
+            currentTranscriptionMethod = .local
+        }
         
         // Try network-based transcription first
         if shouldUseNetworkTranscription() {
