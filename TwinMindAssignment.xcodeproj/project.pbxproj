@@ -6,11 +6,6 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		F2C9810E2E1D403A00F4C391 /* DSWaveformImage in Frameworks */ = {isa = PBXBuildFile; productRef = F2C9810D2E1D403A00F4C391 /* DSWaveformImage */; };
-		F2C981102E1D403A00F4C391 /* DSWaveformImageViews in Frameworks */ = {isa = PBXBuildFile; productRef = F2C9810F2E1D403A00F4C391 /* DSWaveformImageViews */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXContainerItemProxy section */
 		F2A47B982E1CED8900C752FB /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -35,7 +30,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		F2CE54B92E1D13C9004FB151 /* Exceptions for "TwinMindAssignment" folder in "TwinMindAssignment" target */ = {
+		F29F2F3B2E24B3BA00902F81 /* Exceptions for "TwinMindAssignment" folder in "TwinMindAssignment" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -48,7 +43,7 @@
 		F2A47B872E1CED8800C752FB /* TwinMindAssignment */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				F2CE54B92E1D13C9004FB151 /* Exceptions for "TwinMindAssignment" folder in "TwinMindAssignment" target */,
+				F29F2F3B2E24B3BA00902F81 /* Exceptions for "TwinMindAssignment" folder in "TwinMindAssignment" target */,
 			);
 			path = TwinMindAssignment;
 			sourceTree = "<group>";
@@ -70,8 +65,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F2C9810E2E1D403A00F4C391 /* DSWaveformImage in Frameworks */,
-				F2C981102E1D403A00F4C391 /* DSWaveformImageViews in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -132,8 +125,6 @@
 			);
 			name = TwinMindAssignment;
 			packageProductDependencies = (
-				F2C9810D2E1D403A00F4C391 /* DSWaveformImage */,
-				F2C9810F2E1D403A00F4C391 /* DSWaveformImageViews */,
 			);
 			productName = TwinMindAssignment;
 			productReference = F2A47B852E1CED8800C752FB /* TwinMindAssignment.app */;
@@ -218,7 +209,6 @@
 			mainGroup = F2A47B7C2E1CED8800C752FB;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				F2C9810C2E1D403A00F4C391 /* XCRemoteSwiftPackageReference "DSWaveformImage" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F2A47B862E1CED8800C752FB /* Products */;
@@ -424,17 +414,18 @@
 				DEVELOPMENT_TEAM = 8FJPU4SM32;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = TwinMindAssignment/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_CFBundleDisplayName = TwinMindAssignment;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app requires microphone access to record audio for transcription. Your recordings are processed securely and stored locally on your device";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app requires microphone access to record audio for transcription. Your recordings are processed securely and stored locally on your device.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "This app uses speech recognition to provide local transcription when network transcription is unavailable. This enhances your privacy by keeping audio processing on-device.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIRequiredDeviceCapabilities = microphone;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -444,7 +435,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -459,17 +450,18 @@
 				DEVELOPMENT_TEAM = 8FJPU4SM32;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = TwinMindAssignment/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_CFBundleDisplayName = TwinMindAssignment;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app requires microphone access to record audio for transcription. Your recordings are processed securely and stored locally on your device";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app requires microphone access to record audio for transcription. Your recordings are processed securely and stored locally on your device.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "This app uses speech recognition to provide local transcription when network transcription is unavailable. This enhances your privacy by keeping audio processing on-device.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIRequiredDeviceCapabilities = microphone;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -479,7 +471,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -595,30 +587,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		F2C9810C2E1D403A00F4C391 /* XCRemoteSwiftPackageReference "DSWaveformImage" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/dmrschmidt/DSWaveformImage";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 14.2.2;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		F2C9810D2E1D403A00F4C391 /* DSWaveformImage */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = F2C9810C2E1D403A00F4C391 /* XCRemoteSwiftPackageReference "DSWaveformImage" */;
-			productName = DSWaveformImage;
-		};
-		F2C9810F2E1D403A00F4C391 /* DSWaveformImageViews */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = F2C9810C2E1D403A00F4C391 /* XCRemoteSwiftPackageReference "DSWaveformImage" */;
-			productName = DSWaveformImageViews;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = F2A47B7D2E1CED8800C752FB /* Project object */;
 }

@@ -11,29 +11,21 @@ struct SettingsView: View {
     var body: some View {
         NavigationView{
             Form {
-                // Audio Settings Section
                 audioSettingsSection
-                
-                // Transcription Settings Section
+                audioQualitySection
                 transcriptionSettingsSection
-                
-                // System Status Section
                 systemStatusSection
-                
-                // Storage Management Section
                 storageManagementSection
-                
-                // About Section
                 aboutSection
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
         }
         .alert("OpenAI API Key", isPresented: $showingAPIKeyAlert) {
-            TextField("API Key", text: $apiKey)
+            SecureField("API Key", text: $apiKey)
             Button("Save") {
                 _ = KeychainHandler.shared.set(apiKey, forKey: .kOpenAIKey)
-//                transcriptionService.configureAPI(apiKey: apiKey)
+                //                transcriptionService.configureAPI(apiKey: apiKey)
             }
             Button("Cancel", role: .cancel) { }
         } message: {
@@ -91,6 +83,7 @@ struct SettingsView: View {
                     .foregroundColor(.secondary)
             }
             
+            
             // Background Recording
             HStack {
                 Label("Background Recording", systemImage: "arrow.triangle.2.circlepath")
@@ -116,7 +109,30 @@ struct SettingsView: View {
             }
         }
     }
-    
+    private var audioQualitySection: some View {
+        Section("Audio Quality") {
+            ForEach(AudioManager.audioQualityPresets, id: \.sampleRate) { config in
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text(audioManager.getConfigurationDisplayName(config))
+                        
+                        Text("\(config.channels) channel, \(config.bitDepth)-bit")
+                        
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    if config.sampleRate == audioManager.audioConfiguration.sampleRate {
+                        Image(systemName: "checkmark")
+                            .foregroundColor(.blue)
+                    }
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    audioManager.setAudioConfiguration(config)
+                }
+            }
+        }
+    }
     private var transcriptionSettingsSection: some View {
         Section("Transcription") {
             // Network Status
@@ -324,4 +340,4 @@ struct SettingsView: View {
         // For now, this is a placeholder
         print("Cleaning up temporary files...")
     }
-} 
+}

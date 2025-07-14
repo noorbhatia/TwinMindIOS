@@ -2,12 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>UIUserInterfaceStyle</key>
-	<string>Light</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>This app requires microphone access to record audio for transcription. Your recordings are processed securely and stored locally on your device.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>This app uses speech recognition to provide local transcription when network transcription is unavailable. This enhances your privacy by keeping audio processing on-device.</string>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
 		<string>com.twinmind.assignment.background-recording</string>
@@ -30,6 +24,8 @@
 			</array>
 		</dict>
 	</array>
+	<key>CFBundleGetInfoString</key>
+	<string></string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
@@ -51,8 +47,8 @@
 	<array>
 		<string></string>
 		<string>audio</string>
-		<string>background-processing</string>
-		<string>background-fetch</string>
+		<string>processing</string>
+		<string>fetch</string>
 	</array>
 	<key>UIFileSharingEnabled</key>
 	<true/>

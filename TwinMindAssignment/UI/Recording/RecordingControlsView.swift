@@ -1,8 +1,6 @@
 import SwiftUI
 import Speech
 import SwiftData
-import DSWaveformImage
-import DSWaveformImageViews
 import Foundation
 
 
