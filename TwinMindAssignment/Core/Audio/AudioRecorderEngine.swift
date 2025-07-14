@@ -4,7 +4,7 @@ import Combine
 import Accelerate
 import SwiftData
 
-enum AudioFileFormat {
+enum AudioFileFormat: Codable {
     case wav
     case m4a
     case caf
@@ -49,7 +49,7 @@ enum RecordingState: Equatable {
 }
 
 // MARK: - Audio Configuration
-struct AudioConfiguration {
+struct AudioConfiguration: Codable {
     let sampleRate: Double
     let bitDepth: UInt32
     let channels: UInt32

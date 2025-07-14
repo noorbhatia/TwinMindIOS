@@ -2,18 +2,53 @@ import Foundation
 import UIKit
 import BackgroundTasks
 
-/// Manages background tasks for continuous audio recording
+/// Manages background tasks for continuous audio recording with smart prioritization and termination handling
 @MainActor
 final class BackgroundTaskManager: ObservableObject {
+    
+    // MARK: - Task Priority Levels
+    enum TaskPriority {
+        case critical   // Recording tasks
+        case high       // Transcription tasks
+        case normal     // Background processing
+        case low        // Cleanup tasks
+    }
+    
+    // MARK: - Background Task Types
+    enum BackgroundTaskType {
+        case recording
+        case transcription
+        case processing
+        case cleanup
+        
+        var priority: TaskPriority {
+            switch self {
+            case .recording: return .critical
+            case .transcription: return .high
+            case .processing: return .normal
+            case .cleanup: return .low
+            }
+        }
+    }
+    
+    // MARK: - Task Information
+    private struct TaskInfo {
+        let identifier: UIBackgroundTaskIdentifier
+        let type: BackgroundTaskType
+        let startTime: Date
+        let expirationHandler: (() -> Void)?
+    }
     
     // MARK: - Published Properties
     @Published var isBackgroundRecordingEnabled = false
     @Published var backgroundTimeRemaining: TimeInterval = 0
+    @Published var activeTasksCount: Int = 0
     
     // MARK: - Private Properties
-    private var backgroundTaskIdentifier: UIBackgroundTaskIdentifier = .invalid
+    private var activeTasks: [BackgroundTaskType: TaskInfo] = [:]
     private var backgroundAppRefreshTask: BGAppRefreshTask?
     private var backgroundTimer: Timer?
+    private var isTerminating = false
     
     // Background task identifiers (must match Info.plist)
     private let backgroundRecordingTaskIdentifier = "com.twinmind.assignment.background-recording"
@@ -32,34 +67,58 @@ final class BackgroundTaskManager: ObservableObject {
     
     // MARK: - Public Methods
     
-    /// Requests background recording capability
-    func requestBackgroundRecording() -> Bool {
-        guard backgroundTaskIdentifier == .invalid else {
-            return true // Already have background task
+    /// Requests background task with specific type and priority
+    func requestBackgroundTask(type: BackgroundTaskType) -> Bool {
+        guard activeTasks[type] == nil else {
+            return true // Already have this type of background task
         }
         
-        backgroundTaskIdentifier = UIApplication.shared.beginBackgroundTask(withName: "Audio Recording") { [weak self] in
-            // Background task is about to expire
-            self?.handleBackgroundTaskExpiration()
+        let taskName = getTaskName(for: type)
+        let taskIdentifier = UIApplication.shared.beginBackgroundTask(withName: taskName) { [weak self] in
+            self?.handleTaskExpiration(for: type)
         }
         
-        if backgroundTaskIdentifier != .invalid {
-            isBackgroundRecordingEnabled = true
-            startBackgroundTimer()
+        if taskIdentifier != .invalid {
+            let taskInfo = TaskInfo(
+                identifier: taskIdentifier,
+                type: type,
+                startTime: Date(),
+                expirationHandler: nil
+            )
+            activeTasks[type] = taskInfo
+            updatePublishedProperties()
+            
+            if type == .recording {
+                startBackgroundTimer()
+            }
+            
             return true
         }
         
         return false
     }
     
-    /// Ends background recording task
-     func endBackgroundTask() {
-        guard backgroundTaskIdentifier != .invalid else { return }
+    /// Requests background recording capability (convenience method)
+    func requestBackgroundRecording() -> Bool {
+        return requestBackgroundTask(type: .recording)
+    }
+    
+    /// Ends specific background task
+    func endBackgroundTask(type: BackgroundTaskType) {
+        guard let taskInfo = activeTasks[type] else { return }
         
-        UIApplication.shared.endBackgroundTask(backgroundTaskIdentifier)
-        backgroundTaskIdentifier = .invalid
-        isBackgroundRecordingEnabled = false
-        stopBackgroundTimer()
+        UIApplication.shared.endBackgroundTask(taskInfo.identifier)
+        activeTasks.removeValue(forKey: type)
+        updatePublishedProperties()
+        
+        if type == .recording {
+            stopBackgroundTimer()
+        }
+    }
+    
+    /// Ends background recording task (convenience method)
+    func endBackgroundTask() {
+        endBackgroundTask(type: .recording)
     }
     
     /// Schedules background app refresh for processing
@@ -138,9 +197,27 @@ final class BackgroundTaskManager: ObservableObject {
     }
     
     @objc private func appWillTerminate() {
-        // App is about to terminate
-        endBackgroundTask()
-        NotificationCenter.default.post(name: .appWillTerminate, object: nil)
+        isTerminating = true
+        
+        // Coordinate emergency data saving across all components
+        prepareForTermination()
+        
+        // Notify all components with termination context
+        NotificationCenter.default.post(name: .appWillTerminate, object: ["isEmergency": true])
+        
+        // Allow brief time for emergency data saving
+        let terminationTask = UIApplication.shared.beginBackgroundTask(withName: "Emergency Termination Cleanup") {
+            // Force cleanup if time runs out
+            self.forceCleanupAllTasks()
+        }
+        
+        // Give components 5 seconds for emergency save
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+            self.forceCleanupAllTasks()
+            if terminationTask != .invalid {
+                UIApplication.shared.endBackgroundTask(terminationTask)
+            }
+        }
     }
     
     private func handleBackgroundTaskExpiration() {
@@ -212,6 +289,57 @@ final class BackgroundTaskManager: ObservableObject {
             )
         }
     }
+    
+    private func getTaskName(for type: BackgroundTaskType) -> String {
+        switch type {
+        case .recording: return "Audio Recording"
+        case .transcription: return "Audio Transcription"
+        case .processing: return "Background Processing"
+        case .cleanup: return "Resource Cleanup"
+        }
+    }
+    
+    private func handleTaskExpiration(for type: BackgroundTaskType) {
+        print("Background task expiring for type: \(type)")
+        
+        switch type {
+        case .recording:
+            NotificationCenter.default.post(name: .backgroundTaskExpiring, object: ["taskType": "recording"])
+        case .transcription:
+            NotificationCenter.default.post(name: .backgroundTaskExpiring, object: ["taskType": "transcription"])
+        case .processing:
+            scheduleBackgroundProcessing()
+        case .cleanup:
+            break
+        }
+        
+        endBackgroundTask(type: type)
+    }
+    
+    private func updatePublishedProperties() {
+        isBackgroundRecordingEnabled = activeTasks[.recording] != nil
+        activeTasksCount = activeTasks.count
+    }
+    
+    private func prepareForTermination() {
+        // Broadcast termination preparation to all components
+        NotificationCenter.default.post(name: .prepareForTermination, object: ["urgency": "high"])
+        
+        // Stop non-critical timers
+        stopBackgroundTimer()
+        
+        // Mark as terminating to prevent new task requests
+        isTerminating = true
+    }
+    
+    private func forceCleanupAllTasks() {
+        for (_, taskInfo) in activeTasks {
+            UIApplication.shared.endBackgroundTask(taskInfo.identifier)
+        }
+        activeTasks.removeAll()
+        updatePublishedProperties()
+        stopBackgroundTimer()
+    }
 }
 
 // MARK: - Notification Extensions
@@ -222,6 +350,7 @@ extension Notification.Name {
     static let backgroundTaskExpiring = Notification.Name("backgroundTaskExpiring")
     static let backgroundTimeWarning = Notification.Name("backgroundTimeWarning")
     static let performBackgroundProcessing = Notification.Name("performBackgroundProcessing")
+    static let prepareForTermination = Notification.Name("prepareForTermination")
 }
 
 // MARK: - Background Recording Extensions
@@ -250,5 +379,32 @@ extension BackgroundTaskManager {
         let missingModes = requiredModes.filter { !backgroundModes.contains($0) }
         
         return (missingModes.isEmpty, missingModes)
+    }
+    
+    /// Gets active task information for monitoring
+    func getActiveTaskInfo() -> [String: Any] {
+        var taskInfo: [String: Any] = [:]
+        for (type, info) in activeTasks {
+            taskInfo["\(type)"] = [
+                "startTime": info.startTime,
+                "duration": Date().timeIntervalSince(info.startTime)
+            ]
+        }
+        return taskInfo
+    }
+    
+    /// Checks if termination is in progress
+    func isTerminationInProgress() -> Bool {
+        return isTerminating
+    }
+    
+    /// Requests background task for transcription
+    func requestBackgroundTranscription() -> Bool {
+        return requestBackgroundTask(type: .transcription)
+    }
+    
+    /// Ends background transcription task
+    func endBackgroundTranscription() {
+        endBackgroundTask(type: .transcription)
     }
 } 

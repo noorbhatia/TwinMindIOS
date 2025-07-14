@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import AVFAudio
 
 /// Manages AVAudioSession configuration and state for audio recording
 @MainActor
@@ -13,6 +14,7 @@ final class AudioSessionManager: ObservableObject {
     // MARK: - Private Properties
     private let audioSession = AVAudioSession.sharedInstance()
     private var sessionObservers: [NSObjectProtocol] = []
+    private var isTerminating = false
     
     // MARK: - Audio Session Configuration
     private let audioSessionCategory: AVAudioSession.Category = .playAndRecord
@@ -27,6 +29,7 @@ final class AudioSessionManager: ObservableObject {
     // MARK: - Initialization
     init() {
         setupAudioSessionObservers()
+        setupTerminationObservers()
         updateCurrentRoute()
         Task {
             await checkRecordPermission()
@@ -34,7 +37,9 @@ final class AudioSessionManager: ObservableObject {
     }
     
     deinit {
-//        removeAudioSessionObservers()
+        // Clean up resources synchronously for deinit
+        // Note: This is best effort cleanup since we can't call MainActor methods
+        cleanupResourcesSync()
     }
     
     // MARK: - Public Methods
@@ -67,6 +72,7 @@ final class AudioSessionManager: ObservableObject {
     /// Requests microphone permission
     func requestRecordPermission() async -> Bool {
         return await withCheckedContinuation { continuation in
+            // Using deprecated API with suppression since AVAudioApplication is not working as expected
             audioSession.requestRecordPermission { granted in
                 DispatchQueue.main.async {
                     self.isRecordPermissionGranted = granted
@@ -78,6 +84,7 @@ final class AudioSessionManager: ObservableObject {
     
     /// Checks current microphone permission status
     func checkRecordPermission() async {
+        // Using deprecated API with suppression since AVAudioApplication is not working as expected
         let permission = audioSession.recordPermission
         isRecordPermissionGranted = (permission == .granted)
     }
@@ -91,7 +98,9 @@ final class AudioSessionManager: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            self?.handleAudioSessionInterruption(notification)
+            Task { @MainActor in
+                self?.handleAudioSessionInterruption(notification)
+            }
         }
         
         // Audio route change observer
@@ -100,7 +109,9 @@ final class AudioSessionManager: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            self?.handleAudioRouteChange(notification)
+            Task { @MainActor in
+                self?.handleAudioRouteChange(notification)
+            }
         }
         
         sessionObservers = [interruptionObserver, routeChangeObserver]
@@ -166,6 +177,93 @@ final class AudioSessionManager: ObservableObject {
         } else {
             currentRoute = "Unknown"
         }
+    }
+    
+    private func setupTerminationObservers() {
+        // App termination preparation observer
+        let terminationObserver = NotificationCenter.default.addObserver(
+            forName: .prepareForTermination,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.handleTerminationPreparation()
+            }
+        }
+        
+        // App will terminate observer
+        let appTerminationObserver = NotificationCenter.default.addObserver(
+            forName: .appWillTerminate,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.handleAppTermination()
+            }
+        }
+        
+        sessionObservers.append(terminationObserver)
+        sessionObservers.append(appTerminationObserver)
+    }
+    
+    private func handleTerminationPreparation() {
+        isTerminating = true
+        
+        // Prepare for graceful audio session cleanup
+        print("AudioSessionManager: Preparing for termination")
+    }
+    
+    private func handleAppTermination() {
+        isTerminating = true
+        
+        // Emergency audio session cleanup
+        emergencyCleanup()
+    }
+    
+    private func emergencyCleanup() {
+        do {
+            // Deactivate audio session quickly
+            try audioSession.setActive(false, options: [])
+            isSessionActive = false
+            print("AudioSessionManager: Emergency cleanup completed")
+        } catch {
+            print("AudioSessionManager: Emergency cleanup failed: \(error)")
+        }
+    }
+    
+    // MARK: - Termination-Safe Methods
+    
+    /// Safely deactivates session considering termination state
+    func safeDeactivateSession() throws {
+        guard !isTerminating else {
+            // Use emergency cleanup during termination
+            emergencyCleanup()
+            return
+        }
+        
+        try deactivateSession()
+    }
+    
+    /// Checks if session manager is in termination state
+    func isInTerminationState() -> Bool {
+        return isTerminating
+    }
+    
+    // MARK: - Non-Isolated Cleanup Methods (for deinit)
+    
+    /// Non-isolated cleanup for deinit - best effort cleanup
+    nonisolated private func cleanupResourcesSync() {
+        // Clean up audio session directly (best effort)
+        do {
+            try AVAudioSession.sharedInstance().setActive(false, options: [])
+            print("AudioSessionManager: Emergency cleanup completed in deinit")
+        } catch {
+            print("AudioSessionManager: Emergency cleanup failed in deinit: \(error)")
+        }
+        
+        // Note: Observer cleanup should ideally happen on MainActor
+        // but we can't call MainActor methods from deinit
+        // The observers will be cleaned up when the object is deallocated
     }
 }
 

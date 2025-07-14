@@ -10,22 +10,20 @@
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
+			<key>CFBundleTypeMIMETypes</key>
+			<array>
+				<string>public.audio</string>
+				<string>public.wav-audio</string>
+				<string>public.mpeg-4-audio</string>
+			</array>
 			<key>CFBundleTypeName</key>
 			<string>Audio Recording</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSHandlerRank</key>
 			<string>Default</string>
-			<key>LSItemContentTypes</key>
-			<array>
-				<string>public.audio</string>
-				<string>public.wav-audio</string>
-				<string>public.mpeg-4-audio</string>
-			</array>
 		</dict>
 	</array>
-	<key>CFBundleGetInfoString</key>
-	<string></string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
@@ -45,12 +43,9 @@
 	</dict>
 	<key>UIBackgroundModes</key>
 	<array>
-		<string></string>
 		<string>audio</string>
-		<string>processing</string>
 		<string>fetch</string>
+		<string>processing</string>
 	</array>
-	<key>UIFileSharingEnabled</key>
-	<true/>
 </dict>
 </plist>
