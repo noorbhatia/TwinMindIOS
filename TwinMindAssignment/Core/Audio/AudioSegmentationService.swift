@@ -101,10 +101,22 @@ final class AudioSegmentationService: ObservableObject {
             let audioFile = try AVAudioFile(forReading: fileURL)
             let totalDuration = Double(audioFile.length) / audioFile.fileFormat.sampleRate
             
+            print("AudioSegmentation: Using source file format - Sample Rate: \(audioFile.fileFormat.sampleRate)Hz, Channels: \(audioFile.fileFormat.channelCount)")
+            print("AudioSegmentation: Session format - Sample Rate: \(session.sampleRate)Hz, Channels: \(session.channels), Bit Depth: \(session.bitDepth)")
+            
+            // Use the source file's format to avoid conversion issues that corrupt the audio
+            // This ensures the segmented files maintain the exact same format as the original
+            let sessionConfig = SegmentationConfig(
+                segmentDuration: config.segmentDuration,
+                overlapDuration: config.overlapDuration,
+                minimumSegmentDuration: config.minimumSegmentDuration,
+                audioFormat: audioFile.processingFormat
+            )
+            
             // Calculate segment parameters
             let segments = calculateSegments(
                 totalDuration: totalDuration,
-                config: config
+                config: sessionConfig
             )
             
             totalSegments = segments.count
@@ -122,7 +134,7 @@ final class AudioSegmentationService: ObservableObject {
                     segmentInfo: segmentInfo,
                     segmentIndex: index,
                     sessionId: session.id,
-                    config: config
+                    config: sessionConfig
                 )
                 
                 // Create AudioSegment model
@@ -255,10 +267,11 @@ final class AudioSegmentationService: ObservableObject {
             "segment_\(sessionId.uuidString)_\(segmentIndex).wav"
         )
         
-        // Create output audio file
+        // Create output audio file using the exact same format as source to avoid conversion
+        print("AudioSegmentation: Creating segment file with format - Sample Rate: \(sourceFile.fileFormat.sampleRate)Hz, Channels: \(sourceFile.fileFormat.channelCount)")
         let outputFile = try AVAudioFile(
             forWriting: outputURL,
-            settings: config.audioFormat.settings
+            settings: sourceFile.fileFormat.settings
         )
         
         // Read and write audio data in chunks to manage memory
@@ -282,11 +295,12 @@ final class AudioSegmentationService: ObservableObject {
             // Read from source
             try sourceFile.read(into: buffer, frameCount: framesToRead)
             
-            // Convert format if necessary
-            if sourceFile.processingFormat != config.audioFormat {
+            // Since we're using the exact same format as source, no conversion should be needed
+            // but check just in case there are processing format differences
+            if sourceFile.processingFormat != sourceFile.fileFormat {
                 guard let convertedBuffer = await convertBuffer(
                     buffer,
-                    to: config.audioFormat
+                    to: sourceFile.fileFormat
                 ) else {
                     reportError(.storage(.fileCorrupted), operation: "createSegmentFile")
                     throw NSError(domain: "SegmentationError", code: 5, userInfo: [NSLocalizedDescriptionKey: "Format conversion failed"])
@@ -302,6 +316,17 @@ final class AudioSegmentationService: ObservableObject {
             
             // Check for cancellation
             try Task.checkCancellation()
+        }
+        
+        // Validate the created file can be read
+        do {
+            let validationFile = try AVAudioFile(forReading: outputURL)
+            print("AudioSegmentation: Successfully created segment file - Sample Rate: \(validationFile.fileFormat.sampleRate)Hz, Length: \(validationFile.length) frames")
+        } catch {
+            print("AudioSegmentation: Warning - Created file cannot be read: \(error.localizedDescription)")
+            // Delete the corrupted file
+            try? fileManager.removeItem(at: outputURL)
+            throw NSError(domain: "SegmentationError", code: 9, userInfo: [NSLocalizedDescriptionKey: "Created segment file is corrupted: \(error.localizedDescription)"])
         }
         
         return outputURL

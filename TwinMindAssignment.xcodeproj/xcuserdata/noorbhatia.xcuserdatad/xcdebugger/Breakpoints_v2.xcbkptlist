@@ -34,36 +34,6 @@
             endingLineNumber = "207"
             landmarkName = "deleteSession(_:)"
             landmarkType = "7">
-            <Locations>
-               <Location
-                  uuid = "819C8BE1-FD3B-4381-BB7C-F0D20A0F0203 - 3b5f7c9f85193402"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "closure #2 @Swift.MainActor () -&gt; () in TwinMindAssignment.SessionListView.deleteSession(TwinMindAssignment.Session) -&gt; ()"
-                  moduleName = "TwinMindAssignment.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/noorbhatia/Desktop/noobzik/TwinMindAssignment/TwinMindAssignment/UI/Sessions/SessionListView.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "208"
-                  endingLineNumber = "208">
-               </Location>
-               <Location
-                  uuid = "819C8BE1-FD3B-4381-BB7C-F0D20A0F0203 - eca81fc72015fd5a"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "closure #2 () -&gt; Swift.Optional&lt;Foundation.UUID&gt; in closure #2 @Swift.MainActor () -&gt; () in TwinMindAssignment.SessionListView.deleteSession(TwinMindAssignment.Session) -&gt; ()"
-                  moduleName = "TwinMindAssignment.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/noorbhatia/Desktop/noobzik/TwinMindAssignment/TwinMindAssignment/UI/Sessions/SessionListView.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "208"
-                  endingLineNumber = "208">
-               </Location>
-            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -78,7 +48,23 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "205"
             endingLineNumber = "205"
-            landmarkName = "deleteSession(_:)"
+            landmarkName = "SessionListView"
+            landmarkType = "14">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "44F723FC-7D77-481E-BBB3-25BAE9146662"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "TwinMindAssignment/Core/Transcription/TranscriptionService.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "251"
+            endingLineNumber = "251"
+            landmarkName = "performTranscription(for:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

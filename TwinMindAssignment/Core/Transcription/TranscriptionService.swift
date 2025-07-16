@@ -367,6 +367,7 @@ final class TranscriptionService: ObservableObject {
             
             return transcription
         } catch {
+            debugPrint("Local transcription error: \(error.localizedDescription)")
             reportError(.transcription(.localTranscriptionUnavailable), operation: "transcribeLocally")
             throw error
         }

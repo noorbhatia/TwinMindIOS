@@ -39,6 +39,27 @@ final class LocalTranscriptionService: ObservableObject {
             throw NSError(domain: "LocalTranscriptionError", code: 3, userInfo: [NSLocalizedDescriptionKey: "Invalid audio file"])
         }
         
+        // Validate audio file format for Speech Framework compatibility
+        do {
+            let audioFile = try AVAudioFile(forReading: audioURL)
+            let format = audioFile.fileFormat
+            print("LocalTranscription: Audio file format - Sample Rate: \(format.sampleRate)Hz, Channels: \(format.channelCount), File: \(audioURL.lastPathComponent)")
+            
+            // Check if format is compatible with Speech Framework
+            if format.sampleRate < 8000 || format.sampleRate > 48000 {
+                print("LocalTranscription: Warning - Sample rate \(format.sampleRate)Hz may not be optimal for Speech Framework")
+            }
+            
+            if format.channelCount > 1 {
+                print("LocalTranscription: Warning - Multi-channel audio (\(format.channelCount) channels) may not be optimal for Speech Framework")
+            }
+            
+        } catch {
+            print("LocalTranscription: Failed to read audio file format: \(error.localizedDescription)")
+            reportError(.transcription(.audioFileInvalid), operation: "transcribe")
+            throw NSError(domain: "LocalTranscriptionError", code: 6, userInfo: [NSLocalizedDescriptionKey: "Audio file format validation failed: \(error.localizedDescription)"])
+        }
+        
         // Check permissions
         let authStatus = await requestSpeechRecognitionPermission()
         guard authStatus == .authorized else {

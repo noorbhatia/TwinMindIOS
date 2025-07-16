@@ -14,7 +14,7 @@ struct SessionListView: View {
     @State private var isShowingSettings = false
     @State private var sessionToDelete: Session?
     @State private var sessionsBeingDeleted: Set<UUID> = []
-    @State private var queuedSessionIDs: Set<UUID> = []
+    @State private var isSegmenting = false
     
     @StateObject var player = AudioPlayer()
     
@@ -91,13 +91,13 @@ struct SessionListView: View {
             .navigationBarTitleDisplayMode(.large)
             .searchable(text: $searchText, prompt: "Search sessions or transcriptions")
             .toolbar {
-                if transcriptionService.isTranscribing {
+                if isSegmenting || transcriptionService.isTranscribing {
                     ToolbarItem(placement: .navigationBarLeading) {
                         HStack(spacing: 4) {
                             ProgressView()
                                 .scaleEffect(0.7)
                                 .frame(width: 12, height: 12)
-                            Text(transcriptionMethodText)
+                            Text(isSegmenting ? "Segmenting audio..." : transcriptionMethodText)
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         }
@@ -105,15 +105,32 @@ struct SessionListView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        isShowingSettings.toggle()
-                    } label: {
-                        Image(systemName: "gear")
+                    HStack {
+                        // Show retry button if there are pending transcriptions
+                        if !pendingTranscriptionSessions.isEmpty {
+                            Button {
+                                queueNewSessions(pendingTranscriptionSessions)
+                            } label: {
+                                Image(systemName: "arrow.clockwise")
+                            }
+                            .foregroundColor(.blue)
+                            .disabled(isSegmenting || transcriptionService.isTranscribing)
+                        }
+                        
+                        Button {
+                            isShowingSettings.toggle()
+                        } label: {
+                            Image(systemName: "gear")
+                        }
                     }
                 }
             }
         }
         .onChange(of: recordingSessions) { _, _ in
+            queueNewSessions(pendingTranscriptionSessions)
+        }
+        .onAppear {
+            // Queue any pending sessions when view appears
             queueNewSessions(pendingTranscriptionSessions)
         }
         
@@ -216,13 +233,38 @@ struct SessionListView: View {
     // MARK: - Transcription Queue Management
     
     private func queueNewSessions(_ sessions: [Session]) {
-        let unqueuedSessions = sessions.filter { !queuedSessionIDs.contains($0.id) }
-        guard !unqueuedSessions.isEmpty else { return }
-        
         Task {
+            // Separate sessions into two categories
+            let sessionsNeedingSegmentation = sessions.filter { session in
+                session.segments.isEmpty && session.fileURL != nil
+            }
             
-            await transcriptionService.queueSessionsBatched(unqueuedSessions)
-            queuedSessionIDs.formUnion(unqueuedSessions.map(\.id))
+            // First, handle sessions that need segmentation
+            if !sessionsNeedingSegmentation.isEmpty {
+                isSegmenting = true
+            }
+            
+            for session in sessionsNeedingSegmentation {
+                do {
+                    try await segmentationService.segmentRecording(session: session)
+                    print("Segmented session \(session.id) - created \(session.segments.count) segments")
+                } catch {
+                    print("Failed to segment session \(session.id): \(error.localizedDescription)")
+                }
+            }
+            
+            isSegmenting = false
+            
+            // Then queue all sessions with segments for transcription
+            let allSessionsWithSegments = sessions.filter { session in
+                !session.segments.isEmpty && session.segments.contains { segment in
+                    !segment.isProcessed && segment.shouldRetryTranscription
+                }
+            }
+            
+            if !allSessionsWithSegments.isEmpty {
+                await transcriptionService.queueSessionsBatched(allSessionsWithSegments)
+            }
             
             // Reset transcription method when done
             transcriptionService.currentTranscriptionMethod = .unknown
